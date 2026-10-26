@@ -1,3 +1,8 @@
 name = "ph-ink"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "ph-ink"
+database_id = "dac79dfe-ff3b-4457-9f4c-d849af503c9d"
