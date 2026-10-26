@@ -1,7 +1,9 @@
 import { Hono } from 'hono'
 import type { Bindings } from '../types'
+import { recordClick } from '../lib/clicks'
 
 type LinkRow = {
+  id: number
   destination: string
   status: string
   expires_at: number | null
@@ -28,7 +30,7 @@ redirect.get('/:slug', async (c) => {
   const slug = c.req.param('slug')
 
   const link = await c.env.DB
-    .prepare('SELECT destination, status, expires_at FROM links WHERE slug = ?')
+    .prepare('SELECT id, destination, status, expires_at FROM links WHERE slug = ?')
     .bind(slug)
     .first<LinkRow>()
 
@@ -48,6 +50,20 @@ redirect.get('/:slug', async (c) => {
   const now = Math.floor(Date.now() / 1000)
   if (link.expires_at !== null && link.expires_at <= now) {
     return messagePage(410, 'Link expired', 'This link has expired.')
+  }
+
+  if (c.req.method !== 'HEAD') {
+    const rawCountry = c.req.raw.cf?.country
+    c.executionCtx.waitUntil(
+      recordClick(c.env.DB, {
+        linkId: link.id,
+        ip: c.req.header('cf-connecting-ip') ?? 'unknown',
+        userAgent: c.req.header('user-agent') ?? '',
+        referer: c.req.header('referer') ?? null,
+        country: typeof rawCountry === 'string' ? rawCountry : null,
+        source: c.req.query('s') === 'q' ? 'qr' : 'link',
+      }).catch((error) => console.error('click logging failed', error)),
+    )
   }
 
   return new Response(null, {
