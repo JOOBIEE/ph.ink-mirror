@@ -5,7 +5,10 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-  "scripts": {},
+    "scripts": {
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit"
+  },
   "dependencies": {
     "hono": "^4.13.14"
   },
