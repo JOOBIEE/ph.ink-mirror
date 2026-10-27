@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { Bindings } from './types'
 import links from './routes/links'
 import redirect from './routes/redirect'
+import { runRollup } from './jobs/rollup'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -12,4 +13,9 @@ app.get('/favicon.ico', (c) => c.body(null, 404))
 app.route('/api/links', links)
 app.route('/', redirect)
 
-export default app
+export default {
+  fetch: app.fetch,
+  scheduled: async (_controller, env, ctx) => {
+    ctx.waitUntil(runRollup(env.DB))
+  },
+} satisfies ExportedHandler<Bindings>
