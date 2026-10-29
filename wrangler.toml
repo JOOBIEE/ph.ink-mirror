@@ -5,6 +5,9 @@ compatibility_date = "2026-10-01"
 [triggers]
 crons = ["15 3 * * *"]
 
+[vars]
+APP_URL = "https://ph.ink"
+
 [[d1_databases]]
 binding = "DB"
 database_name = "ph-ink"
