@@ -1,26 +1,63 @@
-import { Hono } from 'hono'
-import type { Bindings } from '../types'
+import { Hono, type Context } from 'hono'
+import { requireUser, type AuthEnv } from '../middleware/auth'
 import { generateSlug, validateCustomSlug } from '../lib/slug'
 import { validateDestination } from '../lib/url'
+import {
+  deleteLink,
+  getLink,
+  insertLink,
+  listLinks,
+  updateLink,
+  type LinkChanges,
+  type LinkRecord,
+} from '../lib/link-store'
 
-// TEMPORARY: until login exists (Phase 4), every link belongs to dev user 1.
-// Do not deploy this route publicly until then.
-const DEV_OWNER_ID = 1
 const MAX_SLUG_ATTEMPTS = 5
+const NOT_FOUND = { error: 'Link not found.' }
 
-const links = new Hono<{ Bindings: Bindings }>()
+const links = new Hono<AuthEnv>()
+links.use('*', requireUser)
+
+async function readJsonObject(c: Context<AuthEnv>): Promise<Record<string, unknown> | null> {
+  try {
+    const body: unknown = await c.req.json()
+    if (typeof body === 'object' && body !== null && !Array.isArray(body)) {
+      return body as Record<string, unknown>
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+function parseId(value: string): number | null {
+  return /^[1-9][0-9]{0,9}$/.test(value) ? Number(value) : null
+}
+
+function present(c: Context<AuthEnv>, link: LinkRecord) {
+  const base = c.env.APP_URL ?? new URL(c.req.url).origin
+  return {
+    id: link.id,
+    slug: link.slug,
+    shortUrl: `${base}/${link.slug}`,
+    destination: link.destination,
+    title: link.title,
+    status: link.status,
+    expiresAt: link.expires_at,
+    createdAt: link.created_at,
+    updatedAt: link.updated_at,
+  }
+}
+
+function cleanTitle(value: string): string | null {
+  return value.trim().slice(0, 100) || null
+}
 
 links.post('/', async (c) => {
-  let body: unknown
-  try {
-    body = await c.req.json()
-  } catch {
+  const input = await readJsonObject(c)
+  if (!input) {
     return c.json({ error: 'Send a JSON body.' }, 400)
   }
-
-  const input = (
-    typeof body === 'object' && body !== null ? body : {}
-  ) as Record<string, unknown>
 
   if (typeof input.destination !== 'string') {
     return c.json({ error: 'A destination link is required.' }, 400)
@@ -42,24 +79,18 @@ links.post('/', async (c) => {
     customSlug = input.slug
   }
 
-  const title =
-    typeof input.title === 'string' ? input.title.trim().slice(0, 100) || null : null
-  const now = Math.floor(Date.now() / 1000)
-  const origin = new URL(c.req.url).origin
+  const title = typeof input.title === 'string' ? cleanTitle(input.title) : null
+  const owner = c.get('user')
 
   for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
     const slug = customSlug ?? generateSlug()
     try {
-      await c.env.DB
-        .prepare(
-          'INSERT INTO links (slug, destination, owner_id, title, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)',
-        )
-        .bind(slug, destination.url, DEV_OWNER_ID, title, now, now)
-        .run()
-      return c.json(
-        { slug, shortUrl: `${origin}/${slug}`, destination: destination.url },
-        201,
-      )
+      const created = await insertLink(c.env.DB, owner.id, {
+        slug,
+        destination: destination.url,
+        title,
+      })
+      return c.json(present(c, created), 201)
     } catch (error) {
       const message = error instanceof Error ? error.message : ''
       if (!message.includes('UNIQUE')) {
@@ -68,11 +99,80 @@ links.post('/', async (c) => {
       if (customSlug) {
         return c.json({ error: 'That slug is already taken.' }, 409)
       }
-      // A random slug collided with an existing one: loop and try another.
     }
   }
 
   return c.json({ error: 'Could not create a link. Please try again.' }, 500)
+})
+
+links.get('/', async (c) => {
+  const limit = Math.min(Math.max(parseInt(c.req.query('limit') ?? '50', 10) || 50, 1), 100)
+  const offset = Math.max(parseInt(c.req.query('offset') ?? '0', 10) || 0, 0)
+  const rows = await listLinks(c.env.DB, c.get('user').id, limit, offset)
+  return c.json({ links: rows.map((row) => present(c, row)) })
+})
+
+links.get('/:id', async (c) => {
+  const id = parseId(c.req.param('id'))
+  if (id === null) return c.json(NOT_FOUND, 404)
+
+  const link = await getLink(c.env.DB, c.get('user').id, id)
+  if (!link) return c.json(NOT_FOUND, 404)
+  return c.json(present(c, link))
+})
+
+links.patch('/:id', async (c) => {
+  const id = parseId(c.req.param('id'))
+  if (id === null) return c.json(NOT_FOUND, 404)
+
+  const input = await readJsonObject(c)
+  if (!input) {
+    return c.json({ error: 'Send a JSON body.' }, 400)
+  }
+
+  const changes: LinkChanges = {}
+
+  if (input.destination !== undefined) {
+    if (typeof input.destination !== 'string') {
+      return c.json({ error: 'Destination must be text.' }, 400)
+    }
+    const check = validateDestination(input.destination)
+    if (!check.ok) {
+      return c.json({ error: check.reason }, 400)
+    }
+    changes.destination = check.url
+  }
+
+  if (input.title !== undefined) {
+    if (input.title !== null && typeof input.title !== 'string') {
+      return c.json({ error: 'Title must be text.' }, 400)
+    }
+    changes.title = typeof input.title === 'string' ? cleanTitle(input.title) : null
+  }
+
+  if (input.status !== undefined) {
+    if (input.status !== 'active' && input.status !== 'disabled') {
+      return c.json({ error: 'Status must be active or disabled.' }, 400)
+    }
+    changes.status = input.status
+  }
+
+  if (Object.keys(changes).length === 0) {
+    return c.json({ error: 'Nothing to change.' }, 400)
+  }
+
+  const updated = await updateLink(c.env.DB, c.get('user').id, id, changes)
+  if (!updated) return c.json(NOT_FOUND, 404)
+  return c.json(present(c, updated))
+})
+
+links.delete('/:id', async (c) => {
+  const id = parseId(c.req.param('id'))
+  if (id === null) return c.json(NOT_FOUND, 404)
+
+  const removed = await deleteLink(c.env.DB, c.get('user').id, id)
+  if (!removed) return c.json(NOT_FOUND, 404)
+  return c.json({ ok: true })
 })
 
 export default links

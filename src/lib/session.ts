@@ -29,12 +29,14 @@ export async function startSession(c: AppContext, userId: number): Promise<void>
   })
 }
 
-export async function getSessionUser(c: AppContext): Promise<SessionUser | null> {
-  const token = getCookie(c, SESSION_COOKIE)
+export async function lookupSessionUser(
+  db: D1Database,
+  token: string | undefined,
+): Promise<SessionUser | null> {
   if (!token) return null
 
   const now = Math.floor(Date.now() / 1000)
-  return await c.env.DB
+  return await db
     .prepare(
       `SELECT users.id AS id, users.email AS email
        FROM sessions
@@ -45,6 +47,10 @@ export async function getSessionUser(c: AppContext): Promise<SessionUser | null>
     )
     .bind(await hashToken(token), now)
     .first<SessionUser>()
+}
+
+export async function getSessionUser(c: AppContext): Promise<SessionUser | null> {
+  return lookupSessionUser(c.env.DB, getCookie(c, SESSION_COOKIE))
 }
 
 export async function endSession(c: AppContext): Promise<void> {
