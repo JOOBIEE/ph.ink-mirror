@@ -2,6 +2,9 @@ name = "ph-ink"
 main = "src/index.ts"
 compatibility_date = "2026-10-01"
 
+[assets]
+directory = "./web/dist"
+
 [triggers]
 crons = ["15 3 * * *"]
 

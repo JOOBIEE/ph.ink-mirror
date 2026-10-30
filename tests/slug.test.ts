@@ -42,6 +42,8 @@ describe('reserved slugs', () => {
     expect(isReservedSlug('api')).toBe(true)
     expect(isReservedSlug('API')).toBe(true)
     expect(isReservedSlug('Admin')).toBe(true)
+    expect(isReservedSlug('qr-studio')).toBe(true)
+    expect(isReservedSlug('Index')).toBe(true)
   })
 
   it('allows ordinary words', () => {

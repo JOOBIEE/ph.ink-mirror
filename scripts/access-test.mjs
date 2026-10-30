@@ -15,10 +15,13 @@ function runSql(sql) {
   mkdirSync('.wrangler', { recursive: true })
   writeFileSync(SQL_FILE, sql)
   try {
-    execFileSync(
-      'npx',
-      ['wrangler', 'd1', 'execute', DB_NAME, '--local', '--file', SQL_FILE],
-      { stdio: 'pipe', shell: true },
+        execFileSync(
+      process.execPath,
+      [
+        'node_modules/wrangler/bin/wrangler.js',
+        'd1', 'execute', DB_NAME, '--local', '--file', SQL_FILE,
+      ],
+      { stdio: 'pipe' },
     )
   } catch (error) {
     console.error('Database command failed:')
