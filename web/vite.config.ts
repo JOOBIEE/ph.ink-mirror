@@ -13,6 +13,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         index: here('./index.html'),
+        login: here('./login.html'),
+        dashboard: here('./dashboard.html'),
       },
     },
   },

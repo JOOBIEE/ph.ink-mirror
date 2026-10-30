@@ -24,7 +24,7 @@ function page(status: number, title: string, bodyHtml: string): Response {
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
       'Cache-Control': 'no-store',
-      'Referrer-Policy': 'no-referrer',
+      'Referrer-Policy': 'same-origin',
       'X-Robots-Tag': 'noindex',
     },
   })
@@ -141,7 +141,7 @@ auth.post('/verify', async (c) => {
   }
 
   await startSession(c, user.id)
-  return c.redirect('/', 303)
+  return c.redirect('/dashboard', 303)
 })
 
 auth.get('/me', async (c) => {

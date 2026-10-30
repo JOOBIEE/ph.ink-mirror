@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Sign in · ph.ink</title>
+    <link rel="stylesheet" href="./src/main.css" />
+  </head>
+  <body class="min-h-screen bg-white text-zinc-900">
+    <header class="mx-auto flex max-w-3xl items-center justify-between px-4 py-6">
+      <a href="/" class="text-lg font-bold">ph.ink</a>
+    </header>
+
+    <main class="mx-auto max-w-md px-4 py-12">
+      <h1 class="text-2xl font-bold">Sign in</h1>
+      <p class="mt-2 text-zinc-700">
+        Enter your email address and we will send you a sign-in link. No password needed.
+      </p>
+
+      <form id="login-form" class="mt-6 space-y-4" novalidate>
+        <div>
+          <label for="email" class="block text-sm font-semibold">Email address</label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+            class="mt-1 w-full rounded-lg border border-zinc-400 px-3 py-2 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/30"
+          />
+        </div>
+        <button
+          id="submit"
+          type="submit"
+          class="w-full rounded-lg bg-zinc-900 px-4 py-2.5 font-semibold text-white hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900/40 disabled:opacity-60"
+        >
+          Email me a sign-in link
+        </button>
+      </form>
+
+      <p id="status" role="status" aria-live="polite" class="mt-4 text-sm"></p>
+    </main>
+
+    <script type="module" src="./src/login.ts"></script>
+  </body>
+</html>

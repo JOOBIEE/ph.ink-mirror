@@ -8,7 +8,7 @@
     "scripts": {
     "dev": "npm run web:build && wrangler dev",
     "web:build": "vite build --config web/vite.config.ts",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "test": "vitest run",
     "test:access": "node scripts/access-test.mjs"
   },
