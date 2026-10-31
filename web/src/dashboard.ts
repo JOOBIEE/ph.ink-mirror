@@ -8,6 +8,7 @@ import {
   updateLink,
   type LinkItem,
 } from './api'
+import { setAnalyticsLinks } from './analytics'
 
 const userEmail = document.querySelector<HTMLElement>('#user-email')
 const signOutButton = document.querySelector<HTMLButtonElement>('#sign-out')
@@ -188,6 +189,7 @@ async function refresh(): Promise<void> {
   if (!linkList || !emptyNote) return
   linkList.replaceChildren(...links.map(renderLink))
   emptyNote.hidden = links.length > 0
+  setAnalyticsLinks(links)
 }
 
 if (createForm) {

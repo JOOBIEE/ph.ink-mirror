@@ -5,7 +5,7 @@
   "private": true,
   "license": "AGPL-3.0-only",
   "type": "module",
-    "scripts": {
+  "scripts": {
     "dev": "npm run web:build && wrangler dev",
     "web:build": "vite build --config web/vite.config.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
@@ -13,6 +13,7 @@
     "test:access": "node scripts/access-test.mjs"
   },
   "dependencies": {
+    "chart.js": "^4.6.1",
     "hono": "^4.13.14"
   },
   "devDependencies": {

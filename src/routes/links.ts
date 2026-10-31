@@ -2,6 +2,7 @@ import { Hono, type Context } from 'hono'
 import { requireUser, type AuthEnv } from '../middleware/auth'
 import { generateSlug, validateCustomSlug } from '../lib/slug'
 import { validateDestination } from '../lib/url'
+import { parseId } from '../lib/ids'
 import {
   deleteLink,
   getLink,
@@ -28,10 +29,6 @@ async function readJsonObject(c: Context<AuthEnv>): Promise<Record<string, unkno
   } catch {
     return null
   }
-}
-
-function parseId(value: string): number | null {
-  return /^[1-9][0-9]{0,9}$/.test(value) ? Number(value) : null
 }
 
 function present(c: Context<AuthEnv>, link: LinkRecord) {

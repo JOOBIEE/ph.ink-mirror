@@ -69,3 +69,33 @@ export const updateLink = (
 
 export const deleteLink = (id: number) =>
   request<{ ok: boolean }>('DELETE', `/api/links/${id}`)
+
+export type Breakdown = { name: string; clicks: number }
+
+export type Analytics = {
+  range: { days: number; from: string; to: string }
+  includeBots: boolean
+  totals: {
+    clicks: number
+    humanClicks: number
+    botClicks: number
+    qrScans: number
+    visitors: number
+  }
+  daily: { day: string; clicks: number }[]
+  countries: Breakdown[]
+  devices: Breakdown[]
+  browsers: Breakdown[]
+  referrers: Breakdown[]
+}
+
+export function getAnalytics(options: {
+  days: number
+  link: number | null
+  includeBots: boolean
+}): Promise<Analytics> {
+  const params = new URLSearchParams({ days: String(options.days) })
+  if (options.link !== null) params.set('link', String(options.link))
+  if (options.includeBots) params.set('bots', '1')
+  return request<Analytics>('GET', `/api/analytics?${params.toString()}`)
+}

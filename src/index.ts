@@ -5,7 +5,7 @@ import redirect from './routes/redirect'
 import { runRollup } from './jobs/rollup'
 import auth from './routes/auth'
 import { originCheck } from './middleware/origin-check'
-
+import analytics from './routes/analytics'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -16,6 +16,7 @@ app.get('/favicon.ico', (c) => c.body(null, 404))
 app.use('/api/*', originCheck)
 app.route('/api/auth', auth)
 app.route('/api/links', links)
+app.route('/api/analytics', analytics)
 app.route('/', redirect)
 
 export default {
