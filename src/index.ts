@@ -6,6 +6,7 @@ import { runRollup } from './jobs/rollup'
 import auth from './routes/auth'
 import { originCheck } from './middleware/origin-check'
 import analytics from './routes/analytics'
+import account from './routes/account'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -17,6 +18,7 @@ app.use('/api/*', originCheck)
 app.route('/api/auth', auth)
 app.route('/api/links', links)
 app.route('/api/analytics', analytics)
+app.route('/api/account', account)
 app.route('/', redirect)
 
 export default {

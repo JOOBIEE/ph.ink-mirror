@@ -15,6 +15,7 @@ export default defineConfig({
         index: here('./index.html'),
         login: here('./login.html'),
         dashboard: here('./dashboard.html'),
+        settings: here('./settings.html'),
       },
     },
   },

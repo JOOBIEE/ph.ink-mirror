@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>Settings · ph.ink</title>
+    <link rel="stylesheet" href="./src/main.css" />
+  </head>
+  <body class="min-h-screen bg-white text-zinc-900">
+    <header class="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-3 px-4 py-6">
+      <a href="/" class="text-lg font-bold">ph.ink</a>
+      <a
+        href="/dashboard"
+        class="rounded-lg border border-zinc-400 px-3 py-1.5 text-sm font-semibold hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900/30"
+      >
+        Back to dashboard
+      </a>
+    </header>
+
+    <main class="mx-auto max-w-3xl space-y-8 px-4 pb-16">
+      <h1 class="text-2xl font-bold">Settings</h1>
+
+      <div id="settings-content" class="space-y-8">
+        <section aria-labelledby="account-heading" class="rounded-xl border border-zinc-300 p-5">
+          <h2 id="account-heading" class="text-lg font-bold">Your account</h2>
+          <p class="mt-2 text-sm text-zinc-700">
+            Signed in as <strong id="account-email" class="break-all"></strong>
+          </p>
+        </section>
+
+        <section aria-labelledby="data-heading" class="rounded-xl border border-zinc-300 p-5">
+          <h2 id="data-heading" class="text-lg font-bold">Download your data</h2>
+          <p class="mt-2 text-sm text-zinc-700">
+            Get a file with your account details, your links, and your click data. It does not
+            include visitor fingerprints. The file is in JSON format, which you can open in any
+            text editor.
+          </p>
+          <a
+            href="/api/account/export"
+            download
+            class="mt-4 inline-block rounded-lg border border-zinc-400 px-4 py-2 text-sm font-semibold hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900/30"
+          >
+            Download my data
+          </a>
+        </section>
+
+        <section aria-labelledby="delete-heading" class="rounded-xl border border-red-700 p-5">
+          <h2 id="delete-heading" class="text-lg font-bold text-red-800">Delete your account</h2>
+          <p class="mt-2 text-sm text-zinc-800">This cannot be undone. When you delete your account:</p>
+          <ul class="mt-2 list-disc space-y-1 pl-5 text-sm text-zinc-800">
+            <li>Your email address is removed from our records.</li>
+            <li>All your links stop working, and their short addresses can never be used again.</li>
+            <li>All click data and analytics for your links are erased.</li>
+          </ul>
+
+          <form id="delete-form" class="mt-4 space-y-3" novalidate>
+            <div>
+              <label for="confirm-email" class="block text-sm font-semibold">
+                Type your email address to confirm
+              </label>
+              <input
+                id="confirm-email"
+                type="email"
+                autocomplete="off"
+                class="mt-1 w-full rounded-lg border border-zinc-400 px-3 py-2 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/30"
+              />
+            </div>
+            <button
+              id="delete-button"
+              type="submit"
+              class="rounded-lg border border-red-700 bg-red-700 px-4 py-2 text-sm font-semibold text-white hover:bg-red-800 focus:outline-none focus:ring-2 focus:ring-red-700/40 disabled:opacity-60"
+            >
+              Delete my account
+            </button>
+          </form>
+        </section>
+      </div>
+
+      <section id="gone" hidden class="rounded-xl border border-zinc-300 p-5">
+        <h2 class="text-lg font-bold">Your account has been deleted</h2>
+        <p class="mt-2 text-sm text-zinc-700">
+          Your data has been removed. You are welcome to come back and create a new account at
+          any time.
+        </p>
+        <a href="/" class="mt-3 inline-block text-sm font-semibold underline">Back to the home page</a>
+      </section>
+
+      <p id="status" role="status" aria-live="polite" class="text-sm"></p>
+    </main>
+
+    <script type="module" src="./src/settings.ts"></script>
+  </body>
+</html>
