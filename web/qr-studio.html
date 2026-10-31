@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>QR code studio · ph.ink</title>
+    <meta
+      name="description"
+      content="Make styled QR codes for free. Trackable short-link codes or static codes for links, text, Wi-Fi and email."
+    />
+    <link rel="stylesheet" href="./src/main.css" />
+  </head>
+  <body class="min-h-screen bg-white text-zinc-900">
+    <header class="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-6">
+      <a href="/" class="text-lg font-bold">ph.ink</a>
+      <a href="/dashboard" class="btn">Dashboard</a>
+    </header>
+
+    <main class="mx-auto max-w-5xl px-4 pb-16">
+      <h1 class="text-2xl font-bold">QR code studio</h1>
+      <p class="mt-2 max-w-2xl text-sm text-zinc-700">
+        Make a QR code and style it. Static codes are made in your browser and nothing is sent to
+        us.
+      </p>
+
+      <div class="mt-6 grid gap-8 lg:grid-cols-[1fr_22rem]">
+        <div class="space-y-8">
+          <fieldset class="space-y-3">
+            <legend class="text-lg font-bold">1. Type of code</legend>
+            <label class="flex items-start gap-3 text-sm">
+              <input type="radio" name="mode" value="dynamic" class="mt-1" checked />
+              <span>
+                <strong>Trackable short link.</strong> Scans are counted, and you can change where
+                the code goes later without reprinting it. Needs a free account.
+              </span>
+            </label>
+            <label class="flex items-start gap-3 text-sm">
+              <input type="radio" name="mode" value="static" class="mt-1" />
+              <span>
+                <strong>Static.</strong> The code holds the content itself, with no tracking. It
+                keeps working even if ph.ink goes away.
+              </span>
+            </label>
+          </fieldset>
+
+          <section id="dynamic-panel" aria-labelledby="dynamic-heading" class="space-y-2">
+            <h2 id="dynamic-heading" class="text-lg font-bold">2. Choose your link</h2>
+            <label for="dynamic-link" class="block text-sm font-semibold">Link</label>
+            <select id="dynamic-link" class="field"></select>
+            <p id="dynamic-note" class="text-sm text-zinc-700"></p>
+            <p class="text-sm">
+              Need a new link? <a href="/dashboard" class="font-semibold underline">Create one on the dashboard</a>.
+            </p>
+          </section>
+
+          <section id="static-panel" aria-labelledby="static-heading" class="space-y-4" hidden>
+            <h2 id="static-heading" class="text-lg font-bold">2. What should it contain?</h2>
+
+            <div>
+              <label for="static-type" class="block text-sm font-semibold">Content type</label>
+              <select id="static-type" class="field">
+                <option value="url">Website link</option>
+                <option value="text">Plain text</option>
+                <option value="wifi">Wi-Fi network</option>
+                <option value="email">Email</option>
+              </select>
+            </div>
+
+            <div id="form-url">
+              <label for="static-url" class="block text-sm font-semibold">Link</label>
+              <input
+                id="static-url"
+                type="url"
+                placeholder="https://example.com/page"
+                autocomplete="off"
+                class="field"
+              />
+            </div>
+
+            <div id="form-text" hidden>
+              <label for="static-text" class="block text-sm font-semibold">Text</label>
+              <textarea id="static-text" rows="3" class="field"></textarea>
+            </div>
+
+            <div id="form-wifi" class="space-y-3" hidden>
+              <div>
+                <label for="wifi-ssid" class="block text-sm font-semibold">Network name</label>
+                <input id="wifi-ssid" type="text" maxlength="32" autocomplete="off" class="field" />
+              </div>
+              <div>
+                <label for="wifi-password" class="block text-sm font-semibold">Password</label>
+                <input id="wifi-password" type="text" maxlength="63" autocomplete="off" class="field" />
+              </div>
+              <div>
+                <label for="wifi-security" class="block text-sm font-semibold">Security</label>
+                <select id="wifi-security" class="field">
+                  <option value="WPA">WPA, WPA2 or WPA3</option>
+                  <option value="WEP">WEP</option>
+                  <option value="nopass">No password</option>
+                </select>
+              </div>
+              <label class="flex items-center gap-2 text-sm">
+                <input id="wifi-hidden" type="checkbox" class="h-4 w-4" />
+                Hidden network
+              </label>
+            </div>
+
+            <div id="form-email" class="space-y-3" hidden>
+              <div>
+                <label for="email-to" class="block text-sm font-semibold">Send to</label>
+                <input id="email-to" type="email" autocomplete="off" class="field" />
+              </div>
+              <div>
+                <label for="email-subject" class="block text-sm font-semibold">Subject (optional)</label>
+                <input id="email-subject" type="text" autocomplete="off" class="field" />
+              </div>
+              <div>
+                <label for="email-body" class="block text-sm font-semibold">Message (optional)</label>
+                <textarea id="email-body" rows="3" class="field"></textarea>
+              </div>
+            </div>
+          </section>
+
+          <section aria-labelledby="style-heading" class="space-y-4">
+            <h2 id="style-heading" class="text-lg font-bold">3. Style</h2>
+
+            <div class="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label for="dot-style" class="block text-sm font-semibold">Dot pattern</label>
+                <select id="dot-style" class="field">
+                  <option value="rounded" selected>Rounded</option>
+                  <option value="extra-rounded">Smooth</option>
+                  <option value="dots">Dots</option>
+                  <option value="classy">Classy</option>
+                  <option value="classy-rounded">Curved</option>
+                  <option value="square">Square</option>
+                </select>
+              </div>
+              <div>
+                <label for="corner-style" class="block text-sm font-semibold">Corner frames</label>
+                <select id="corner-style" class="field">
+                  <option value="extra-rounded" selected>Extra rounded</option>
+                  <option value="square">Square</option>
+                  <option value="dot">Circle</option>
+                </select>
+              </div>
+              <div>
+                <label for="corner-dot-style" class="block text-sm font-semibold">Corner centres</label>
+                <select id="corner-dot-style" class="field">
+                  <option value="dot" selected>Circle</option>
+                  <option value="square">Square</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <p class="text-sm font-semibold">Presets</p>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button type="button" data-preset="obsidian" class="btn">Obsidian</button>
+                <button type="button" data-preset="minimal" class="btn">Minimal</button>
+                <button type="button" data-preset="silver" class="btn">Silver</button>
+                <button type="button" data-preset="charcoal" class="btn">Charcoal</button>
+              </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label for="dots-color" class="block text-sm font-semibold">Dots</label>
+                <div class="mt-1 flex items-center gap-2">
+                  <input id="dots-color" type="color" value="#09090b" class="h-10 w-12 cursor-pointer rounded border border-zinc-400" />
+                  <input id="dots-hex" type="text" value="#09090B" maxlength="7" aria-label="Dots colour as hex" class="field font-mono text-sm" />
+                </div>
+              </div>
+              <div>
+                <label for="corners-color" class="block text-sm font-semibold">Corners</label>
+                <div class="mt-1 flex items-center gap-2">
+                  <input id="corners-color" type="color" value="#18181b" class="h-10 w-12 cursor-pointer rounded border border-zinc-400" />
+                  <input id="corners-hex" type="text" value="#18181B" maxlength="7" aria-label="Corner colour as hex" class="field font-mono text-sm" />
+                </div>
+              </div>
+              <div>
+                <label for="background-color" class="block text-sm font-semibold">Background</label>
+                <div class="mt-1 flex items-center gap-2">
+                  <input id="background-color" type="color" value="#ffffff" class="h-10 w-12 cursor-pointer rounded border border-zinc-400" />
+                  <input id="background-hex" type="text" value="#FFFFFF" maxlength="7" aria-label="Background colour as hex" class="field font-mono text-sm" />
+                </div>
+              </div>
+            </div>
+
+            <label class="flex items-center gap-2 text-sm">
+              <input id="transparent" type="checkbox" class="h-4 w-4" />
+              Transparent background
+            </label>
+
+            <div>
+              <label for="logo-file" class="block text-sm font-semibold">
+                Logo in the centre (optional)
+              </label>
+              <input
+                id="logo-file"
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                class="mt-1 block w-full text-sm"
+              />
+              <p class="mt-1 text-xs text-zinc-700">
+                PNG, JPG or WebP, up to 500 KB. The logo stays in your browser and is not uploaded.
+              </p>
+              <div id="logo-controls" class="mt-3 space-y-3" hidden>
+                <div>
+                  <label for="logo-scale" class="block text-sm font-semibold">
+                    Logo size: <span id="logo-scale-label">25%</span>
+                  </label>
+                  <input id="logo-scale" type="range" min="0.1" max="0.35" step="0.05" value="0.25" class="w-full" />
+                </div>
+                <button id="logo-remove" type="button" class="btn">Remove logo</button>
+              </div>
+            </div>
+
+            <div class="grid gap-4 sm:grid-cols-3">
+              <div>
+                <label for="margin-percent" class="block text-sm font-semibold">
+                  Blank border: <span id="margin-label">8%</span>
+                </label>
+                <input id="margin-percent" type="range" min="0" max="15" step="1" value="8" class="w-full" />
+              </div>
+              <div>
+                <label for="ecl" class="block text-sm font-semibold">Error correction</label>
+                <select id="ecl" class="field">
+                  <option value="L">Low (7%)</option>
+                  <option value="M">Medium (15%)</option>
+                  <option value="Q" selected>Quartile (25%)</option>
+                  <option value="H">High (30%)</option>
+                </select>
+              </div>
+              <div>
+                <label for="export-size" class="block text-sm font-semibold">PNG size</label>
+                <select id="export-size" class="field">
+                  <option value="512">512 px</option>
+                  <option value="1024" selected>1024 px</option>
+                  <option value="2048">2048 px</option>
+                  <option value="4096">4096 px</option>
+                </select>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <aside class="space-y-4 self-start lg:sticky lg:top-6" aria-labelledby="preview-heading">
+          <h2 id="preview-heading" class="text-lg font-bold">Preview</h2>
+
+          <div class="rounded-xl border border-zinc-300 bg-white p-3">
+            <div
+              id="qr-preview"
+              class="mx-auto flex min-h-[200px] items-center justify-center [&_canvas]:h-auto [&_canvas]:max-w-full [&_svg]:h-auto [&_svg]:max-w-full"
+            ></div>
+            <p id="preview-empty" class="px-2 py-8 text-center text-sm text-zinc-700"></p>
+          </div>
+
+          <div class="rounded-xl border border-zinc-300 p-4">
+            <h3 class="font-bold">Will it scan?</h3>
+            <p id="check-summary" class="mt-1 text-sm font-semibold"></p>
+            <ul id="checks" class="mt-3 space-y-2"></ul>
+            <p class="mt-3 text-xs text-zinc-700">
+              These are rules of thumb, not a guarantee. Always test the final code on a couple of
+              phones before printing.
+            </p>
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button id="download-svg" type="button" class="btn-primary" disabled>Download SVG</button>
+            <button id="download-png" type="button" class="btn" disabled>Download PNG</button>
+            <button id="copy-svg" type="button" class="btn" disabled>Copy SVG code</button>
+          </div>
+
+          <p id="studio-status" role="status" aria-live="polite" class="text-sm"></p>
+        </aside>
+      </div>
+    </main>
+
+    <script type="module" src="./src/studio.ts"></script>
+  </body>
+</html>

@@ -152,11 +152,15 @@ function renderLink(link: LinkItem): HTMLLIElement {
     })
   })
 
-  const toggleTo = link.status === 'active' ? 'disabled' : 'active'
+    const toggleTo = link.status === 'active' ? 'disabled' : 'active'
+
+  const qrLink = el('a', BUTTON, 'QR code')
+  qrLink.href = `/qr-studio?link=${link.id}`
 
   const actions = el('div', 'mt-3 flex flex-wrap gap-2')
   actions.append(
     actionButton('Copy', () => copyText(link.shortUrl)),
+    qrLink,
     actionButton('Edit', async () => {
       editForm.classList.toggle('hidden')
     }),

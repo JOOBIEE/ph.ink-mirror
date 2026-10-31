@@ -16,6 +16,7 @@ export default defineConfig({
         login: here('./login.html'),
         dashboard: here('./dashboard.html'),
         settings: here('./settings.html'),
+        qrstudio: here('./qr-studio.html'),
       },
     },
   },
