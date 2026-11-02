@@ -1,5 +1,13 @@
 import QRCodeStyling from 'qr-code-styling'
-import { ApiError, listLinks, type LinkItem } from './api'
+import {
+  ApiError,
+  getQrStyle,
+  listLinks,
+  resetQrStyle,
+  saveQrStyle,
+  type LinkItem,
+  type SavedQrStyle,
+} from './api'
 import { buildPayload, type PayloadInput } from './qr/payload'
 import { checkScannability, summarizeChecks, type Check, type EccLevel } from './qr/scannability'
 
@@ -106,6 +114,10 @@ const downloadSvg = byId<HTMLButtonElement>('download-svg')
 const downloadPng = byId<HTMLButtonElement>('download-png')
 const copySvg = byId<HTMLButtonElement>('copy-svg')
 const statusBox = byId<HTMLElement>('studio-status')
+const savedControls = byId<HTMLElement>('saved-style-controls')
+const savedNote = byId<HTMLElement>('saved-style-note')
+const saveStyleButton = byId<HTMLButtonElement>('save-style')
+const resetStyleButton = byId<HTMLButtonElement>('reset-style')
 
 const style = {
   dots: '#09090b',
@@ -487,6 +499,121 @@ downloadSvg.addEventListener('click', () => void download('svg'))
 downloadPng.addEventListener('click', () => void download('png'))
 copySvg.addEventListener('click', () => void copySvgCode())
 
+const DEFAULT_STYLE: SavedQrStyle = {
+  dots: '#09090b',
+  corners: '#18181b',
+  background: '#ffffff',
+  transparent: false,
+  dotStyle: 'rounded',
+  cornerStyle: 'extra-rounded',
+  cornerDot: 'dot',
+  marginPercent: 8,
+  ecl: 'Q',
+  logoScale: 0.25,
+  exportSize: 1024,
+}
+
+let styleRequest = 0
+
+function selectedLinkId(): number | null {
+  if (!signedIn || currentMode() !== 'dynamic') return null
+  const id = Number(dynamicLink.value)
+  return Number.isInteger(id) && id > 0 ? id : null
+}
+
+function collectStyle(): SavedQrStyle {
+  readStyle()
+  return {
+    dots: style.dots,
+    corners: style.corners,
+    background: style.background,
+    transparent: style.transparent,
+    dotStyle: style.dotStyle,
+    cornerStyle: style.cornerStyle,
+    cornerDot: style.cornerDot,
+    marginPercent: style.marginPercent,
+    ecl: style.ecl,
+    logoScale: style.logoScale,
+    exportSize: style.exportSize,
+  }
+}
+
+function applyStyle(saved: SavedQrStyle): void {
+  setColor(dotsPicker, dotsHex, saved.dots)
+  setColor(cornersPicker, cornersHex, saved.corners)
+  setColor(backgroundPicker, backgroundHex, saved.background)
+  transparentBox.checked = saved.transparent
+  dotStyleSelect.value = saved.dotStyle
+  cornerStyleSelect.value = saved.cornerStyle
+  cornerDotSelect.value = saved.cornerDot
+  marginRange.value = String(saved.marginPercent)
+  eclSelect.value = saved.ecl
+  logoScale.value = String(saved.logoScale)
+  exportSize.value = String(saved.exportSize)
+}
+
+function styleError(error: unknown, fallback: string): void {
+  showStatus(error instanceof ApiError ? error.message : fallback, true)
+}
+
+async function loadSavedStyle(): Promise<void> {
+  const id = selectedLinkId()
+  savedControls.hidden = id === null
+  savedNote.textContent = ''
+  if (id === null) return
+
+  const mine = ++styleRequest
+  try {
+    const result = await getQrStyle(id)
+    if (mine !== styleRequest) return
+    if (result.style) {
+      applyStyle(result.style)
+      savedNote.textContent = 'Loaded the style you saved for this link.'
+    } else {
+      applyStyle(DEFAULT_STYLE)
+      savedNote.textContent = 'No saved style for this link yet, so the default style is shown.'
+    }
+  } catch (error) {
+    if (mine !== styleRequest) return
+    styleError(error, 'Could not load the saved style.')
+  }
+}
+
+saveStyleButton.addEventListener('click', () => {
+  const id = selectedLinkId()
+  if (id === null) return
+  saveStyleButton.disabled = true
+  void saveQrStyle(id, collectStyle())
+    .then(() => {
+      savedNote.textContent = 'Saved. This style will load whenever you open this link.'
+      showStatus('Style saved.', false)
+    })
+    .catch((error: unknown) => styleError(error, 'Could not save the style.'))
+    .finally(() => {
+      saveStyleButton.disabled = false
+    })
+})
+
+resetStyleButton.addEventListener('click', () => {
+  const id = selectedLinkId()
+  if (id === null) return
+  resetStyleButton.disabled = true
+  void resetQrStyle(id)
+    .then(() => {
+      applyStyle(DEFAULT_STYLE)
+      savedNote.textContent = 'Reset. This link now uses the default style.'
+      showStatus('Style reset.', false)
+      update()
+    })
+    .catch((error: unknown) => styleError(error, 'Could not reset the style.'))
+    .finally(() => {
+      resetStyleButton.disabled = false
+    })
+})
+
+dynamicLink.addEventListener('change', () => {
+  void loadSavedStyle().then(update)
+})
 async function init(): Promise<void> {
   try {
     const result = await listLinks()
@@ -515,6 +642,7 @@ async function init(): Promise<void> {
 
   togglePanels()
   showStaticForm()
+  await loadSavedStyle()
   update()
 }
 

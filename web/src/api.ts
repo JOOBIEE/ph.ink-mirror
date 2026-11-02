@@ -99,5 +99,29 @@ export function getAnalytics(options: {
   if (options.includeBots) params.set('bots', '1')
   return request<Analytics>('GET', `/api/analytics?${params.toString()}`)
 }
+
 export const deleteAccount = (confirmEmail: string) =>
   request<{ ok: boolean }>('POST', '/api/account/delete', { confirmEmail })
+
+export type SavedQrStyle = {
+  dots: string
+  corners: string
+  background: string
+  transparent: boolean
+  dotStyle: string
+  cornerStyle: string
+  cornerDot: string
+  marginPercent: number
+  ecl: string
+  logoScale: number
+  exportSize: number
+}
+
+export const getQrStyle = (linkId: number) =>
+  request<{ style: SavedQrStyle | null; updatedAt: number | null }>('GET', `/api/qr/${linkId}`)
+
+export const saveQrStyle = (linkId: number, style: SavedQrStyle) =>
+  request<{ style: SavedQrStyle; updatedAt: number }>('PUT', `/api/qr/${linkId}`, { style })
+
+export const resetQrStyle = (linkId: number) =>
+  request<{ ok: boolean }>('DELETE', `/api/qr/${linkId}`)

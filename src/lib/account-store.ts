@@ -11,11 +11,19 @@ function capped<T>(rows: T[], max: number): { rows: T[]; truncated: boolean } {
   return { rows: rows.slice(0, max), truncated: rows.length > max }
 }
 
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
 export async function buildExport(
   db: D1Database,
   user: SessionUser,
 ): Promise<Record<string, unknown>> {
-  const [accountRow, linkRows, clickRows, statRows, visitorRows] = await Promise.all([
+  const [accountRow, linkRows, clickRows, statRows, visitorRows, styleRows] = await Promise.all([
     db
       .prepare('SELECT id, email, created_at FROM users WHERE id = ?')
       .bind(user.id)
@@ -84,6 +92,15 @@ export async function buildExport(
       )
       .bind(user.id, MAX_SUMMARY_ROWS + 1)
       .all<{ slug: string; day: string; is_bot: number; visitors: number }>(),
+    db
+      .prepare(
+        `SELECT l.slug, q.style_json, q.updated_at
+         FROM qr_styles q JOIN links l ON l.id = q.link_id
+         WHERE l.owner_id = ?
+         ORDER BY l.id`,
+      )
+      .bind(user.id)
+      .all<{ slug: string; style_json: string; updated_at: number }>(),
   ])
 
   if (!accountRow) {
@@ -112,6 +129,11 @@ export async function buildExport(
       expiresAt: link.expires_at === null ? null : iso(link.expires_at),
       createdAt: iso(link.created_at),
       updatedAt: iso(link.updated_at),
+    })),
+    qrStyles: styleRows.results.map((row) => ({
+      link: row.slug,
+      style: parseJson(row.style_json),
+      updatedAt: iso(row.updated_at),
     })),
     clicks: clicks.rows.map((row) => ({
       time: iso(row.clicked_at),
@@ -156,6 +178,7 @@ export async function deleteAccount(db: D1Database, user: SessionUser): Promise<
     db.prepare(`DELETE FROM clicks WHERE link_id IN (${ownLinks})`).bind(user.id),
     db.prepare(`DELETE FROM daily_stats WHERE link_id IN (${ownLinks})`).bind(user.id),
     db.prepare(`DELETE FROM daily_visitors WHERE link_id IN (${ownLinks})`).bind(user.id),
+    db.prepare(`DELETE FROM qr_styles WHERE link_id IN (${ownLinks})`).bind(user.id),
     db
       .prepare(
         `UPDATE links SET

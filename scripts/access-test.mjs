@@ -70,6 +70,7 @@ const CLEANUP_SQL = `
 DELETE FROM clicks WHERE link_id IN (SELECT id FROM links WHERE owner_id IN (SELECT id FROM users WHERE email LIKE '%@access-test.invalid'));
 DELETE FROM daily_stats WHERE link_id IN (SELECT id FROM links WHERE owner_id IN (SELECT id FROM users WHERE email LIKE '%@access-test.invalid'));
 DELETE FROM daily_visitors WHERE link_id IN (SELECT id FROM links WHERE owner_id IN (SELECT id FROM users WHERE email LIKE '%@access-test.invalid'));
+DELETE FROM qr_styles WHERE link_id IN (SELECT id FROM links WHERE owner_id IN (SELECT id FROM users WHERE email LIKE '%@access-test.invalid'));
 DELETE FROM links WHERE owner_id IN (SELECT id FROM users WHERE email LIKE '%@access-test.invalid');
 DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email LIKE '%@access-test.invalid');
 DELETE FROM users WHERE email LIKE '%@access-test.invalid';
@@ -412,6 +413,131 @@ INSERT INTO daily_visitors (link_id, day, is_bot, visitors)
   VALUES (${carolLink.id}, date('now', '-120 days'), 0, 1);
 `)
 
+    // --- Saved QR styles ---
+    const CAROL_STYLE = {
+      dots: '#A1B2C3',
+      corners: '#112233',
+      background: '#ffffff',
+      transparent: false,
+      dotStyle: 'dots',
+      cornerStyle: 'square',
+      cornerDot: 'square',
+      marginPercent: 9,
+      ecl: 'H',
+      logoScale: 0.2,
+      exportSize: 2048,
+    }
+    const DAN_STYLE = { ...CAROL_STYLE, dots: '#C3B2A1' }
+
+    check(
+      'no cookie: reading a saved style is refused (401)',
+      (await api('GET', `/api/qr/${carolLink.id}`)).status === 401,
+    )
+    check(
+      'no cookie: saving a style is refused (401)',
+      (await api('PUT', `/api/qr/${carolLink.id}`, { body: { style: CAROL_STYLE } })).status === 401,
+    )
+
+    const noStyle = await api('GET', `/api/qr/${carolLink.id}`, { token: carolToken })
+    check(
+      'a link with no saved style returns null (200)',
+      noStyle.status === 200 && noStyle.json?.style === null,
+      JSON.stringify(noStyle.json),
+    )
+
+    const savedStyle = await api('PUT', `/api/qr/${carolLink.id}`, {
+      token: carolToken,
+      body: { style: CAROL_STYLE },
+    })
+    check(
+      'Carol can save a style for her link (200)',
+      savedStyle.status === 200 && savedStyle.json?.style?.dots === '#a1b2c3',
+      JSON.stringify(savedStyle.json),
+    )
+    const loadedStyle = await api('GET', `/api/qr/${carolLink.id}`, { token: carolToken })
+    check(
+      'Carol reads her saved style back',
+      loadedStyle.json?.style?.dotStyle === 'dots' && loadedStyle.json?.style?.exportSize === 2048,
+      JSON.stringify(loadedStyle.json),
+    )
+
+    check(
+      "Dan cannot read Carol's style (404)",
+      (await api('GET', `/api/qr/${carolLink.id}`, { token: danToken })).status === 404,
+    )
+    check(
+      "Dan cannot overwrite Carol's style (404)",
+      (
+        await api('PUT', `/api/qr/${carolLink.id}`, {
+          token: danToken,
+          body: { style: DAN_STYLE },
+        })
+      ).status === 404,
+    )
+    check(
+      "Dan cannot reset Carol's style (404)",
+      (await api('DELETE', `/api/qr/${carolLink.id}`, { token: danToken })).status === 404,
+    )
+    const stillCarol = await api('GET', `/api/qr/${carolLink.id}`, { token: carolToken })
+    check(
+      "Carol's style is unchanged after Dan's attempts",
+      stillCarol.json?.style?.dots === '#a1b2c3',
+      JSON.stringify(stillCarol.json),
+    )
+
+    check(
+      'an invalid colour is refused (400)',
+      (
+        await api('PUT', `/api/qr/${carolLink.id}`, {
+          token: carolToken,
+          body: { style: { ...CAROL_STYLE, dots: 'red' } },
+        })
+      ).status === 400,
+    )
+    check(
+      'an unknown dot pattern is refused (400)',
+      (
+        await api('PUT', `/api/qr/${carolLink.id}`, {
+          token: carolToken,
+          body: { style: { ...CAROL_STYLE, dotStyle: 'evil' } },
+        })
+      ).status === 400,
+    )
+    check(
+      'a request with no style is refused (400)',
+      (
+        await api('PUT', `/api/qr/${carolLink.id}`, {
+          token: carolToken,
+          body: { nothing: true },
+        })
+      ).status === 400,
+    )
+    check(
+      'an invalid link id gives 404',
+      (await api('GET', '/api/qr/abc', { token: carolToken })).status === 404,
+    )
+    check(
+      'saving a style from another site is refused (403)',
+      (
+        await api('PUT', `/api/qr/${carolLink.id}`, {
+          token: carolToken,
+          body: { style: CAROL_STYLE },
+          headers: { Origin: 'https://evil.example' },
+        })
+      ).status === 403,
+    )
+
+    check(
+      'Dan can save a style for his own link (200)',
+      (
+        await api('PUT', `/api/qr/${danLink.id}`, {
+          token: danToken,
+          body: { style: DAN_STYLE },
+        })
+      ).status === 200,
+    )
+
+    // --- Account export and deletion (continued) ---
     check('no cookie: data export is refused (401)', (await apiText('/api/account/export')).status === 401)
     check(
       'no cookie: account deletion is refused (401)',
@@ -439,6 +565,8 @@ INSERT INTO daily_visitors (link_id, day, is_bot, visitors)
         !exported.text.includes('carol-secret-hash') &&
         !exported.text.includes('dan-secret-hash'),
     )
+    check("the export includes Carol's saved QR style", exported.text.includes('#a1b2c3'))
+    check("the export does not include Dan's saved QR style", !exported.text.includes('#c3b2a1'))
 
     check(
       'deleting with no confirmation is refused (400)',
@@ -509,6 +637,14 @@ INSERT INTO daily_visitors (link_id, day, is_bot, visitors)
       leftovers.a === 0 && leftovers.b === 0 && leftovers.c === 0,
       JSON.stringify(leftovers),
     )
+    check(
+      "Carol's saved QR style is erased",
+      queryJson(`SELECT COUNT(*) AS n FROM qr_styles WHERE link_id = ${carolLink.id}`)[0].n === 0,
+    )
+    check(
+      "Dan's saved QR style was not touched",
+      queryJson(`SELECT COUNT(*) AS n FROM qr_styles WHERE link_id = ${danLink.id}`)[0].n === 1,
+    )
     const carolLinkRow = queryJson(
       `SELECT status, title, destination FROM links WHERE id = ${carolLink.id}`,
     )[0]
@@ -535,7 +671,8 @@ INSERT INTO daily_visitors (link_id, day, is_bot, visitors)
   } finally {
     runSql(CLEANUP_SQL)
     if (carolId !== null) {
-      runSql(`DELETE FROM links WHERE owner_id = ${carolId};
+      runSql(`DELETE FROM qr_styles WHERE link_id IN (SELECT id FROM links WHERE owner_id = ${carolId});
+DELETE FROM links WHERE owner_id = ${carolId};
 DELETE FROM sessions WHERE user_id = ${carolId};
 DELETE FROM users WHERE id = ${carolId};`)
     }

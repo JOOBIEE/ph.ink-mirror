@@ -7,6 +7,7 @@ import auth from './routes/auth'
 import { originCheck } from './middleware/origin-check'
 import analytics from './routes/analytics'
 import account from './routes/account'
+import qr from './routes/qr'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -19,6 +20,7 @@ app.route('/api/auth', auth)
 app.route('/api/links', links)
 app.route('/api/analytics', analytics)
 app.route('/api/account', account)
+app.route('/api/qr', qr)
 app.route('/', redirect)
 
 export default {

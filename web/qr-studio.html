@@ -48,6 +48,15 @@
             <label for="dynamic-link" class="block text-sm font-semibold">Link</label>
             <select id="dynamic-link" class="field"></select>
             <p id="dynamic-note" class="text-sm text-zinc-700"></p>
+                        <div id="saved-style-controls" class="flex flex-wrap items-center gap-2" hidden>
+              <button id="save-style" type="button" class="btn">Save this style for this link</button>
+              <button id="reset-style" type="button" class="btn">Reset to default style</button>
+            </div>
+            <p id="saved-style-note" class="text-sm text-zinc-700"></p>
+            <p class="text-xs text-zinc-700">
+              Saved styles keep colours, shapes, border, error correction and sizes. Logos are not
+              saved, because they stay in your browser.
+            </p>
             <p class="text-sm">
               Need a new link? <a href="/dashboard" class="font-semibold underline">Create one on the dashboard</a>.
             </p>
