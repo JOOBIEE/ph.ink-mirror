@@ -125,3 +125,6 @@ export const saveQrStyle = (linkId: number, style: SavedQrStyle) =>
 
 export const resetQrStyle = (linkId: number) =>
   request<{ ok: boolean }>('DELETE', `/api/qr/${linkId}`)
+
+export const submitReport = (input: { link: string; reason: string; details: string }) =>
+  request<{ ok: boolean; message: string }>('POST', '/api/report', input)

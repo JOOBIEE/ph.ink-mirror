@@ -4,4 +4,5 @@ export type Bindings = {
   APP_ENV?: string
   RESEND_API_KEY?: string
   EMAIL_FROM?: string
+  ADMIN_EMAILS?: string
 }

@@ -2,12 +2,14 @@ import { Hono } from 'hono'
 import type { Bindings } from './types'
 import links from './routes/links'
 import redirect from './routes/redirect'
-import { runRollup } from './jobs/rollup'
 import auth from './routes/auth'
-import { originCheck } from './middleware/origin-check'
 import analytics from './routes/analytics'
 import account from './routes/account'
 import qr from './routes/qr'
+import report from './routes/report'
+import admin from './routes/admin'
+import { originCheck } from './middleware/origin-check'
+import { runRollup } from './jobs/rollup'
 
 const app = new Hono<{ Bindings: Bindings }>()
 
@@ -21,6 +23,8 @@ app.route('/api/links', links)
 app.route('/api/analytics', analytics)
 app.route('/api/account', account)
 app.route('/api/qr', qr)
+app.route('/api/report', report)
+app.route('/api/admin', admin)
 app.route('/', redirect)
 
 export default {

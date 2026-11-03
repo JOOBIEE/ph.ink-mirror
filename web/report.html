@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Report a link · ph.ink</title>
+    <meta name="description" content="Report a ph.ink link used for phishing, malware, spam or illegal content." />
+    <link rel="stylesheet" href="./src/main.css" />
+  </head>
+  <body class="min-h-screen bg-white text-zinc-900">
+    <header class="mx-auto flex max-w-xl items-center justify-between px-4 py-6">
+      <a href="/" class="text-lg font-bold">ph.ink</a>
+    </header>
+
+    <main class="mx-auto max-w-xl px-4 pb-16">
+      <h1 class="text-2xl font-bold">Report a link</h1>
+      <p class="mt-2 text-sm text-zinc-700">
+        Tell us about a ph.ink link that is being used for phishing, malware, spam or anything
+        illegal. A person reviews every report. We do not ask who you are.
+      </p>
+
+      <form id="report-form" class="mt-6 space-y-4" novalidate>
+        <div>
+          <label for="link" class="block text-sm font-semibold">The short link</label>
+          <input
+            id="link"
+            type="text"
+            maxlength="300"
+            autocomplete="off"
+            placeholder="https://ph.ink/abc123"
+            class="field"
+          />
+        </div>
+
+        <div>
+          <label for="reason" class="block text-sm font-semibold">What is wrong with it?</label>
+          <select id="reason" class="field">
+            <option value="">Choose a reason</option>
+            <option value="phishing">Phishing or a scam</option>
+            <option value="malware">Malware or a harmful download</option>
+            <option value="spam">Spam</option>
+            <option value="illegal">Illegal content</option>
+            <option value="other">Something else</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="details" class="block text-sm font-semibold">
+            Anything else we should know? (optional)
+          </label>
+          <textarea id="details" rows="4" maxlength="1000" class="field"></textarea>
+        </div>
+
+        <button id="submit" type="submit" class="btn-primary">Send report</button>
+      </form>
+
+      <p id="status" role="status" aria-live="polite" class="mt-4 text-sm"></p>
+
+      <p class="mt-8 text-xs text-zinc-700">
+        We store your report and a scrambled network fingerprint that is deleted within two days,
+        so we can ignore repeats. We do not store your IP address or any account details.
+      </p>
+    </main>
+
+    <script type="module" src="./src/report.ts"></script>
+  </body>
+</html>

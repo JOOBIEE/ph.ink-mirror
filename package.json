@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "test": "vitest run",
     "test:access": "node scripts/access-test.mjs",
-        "test:abuse": "node scripts/abuse-test.mjs"
+    "test:abuse": "node scripts/abuse-test.mjs",
+    "test:admin": "node scripts/admin-test.mjs"
   },
   "dependencies": {
     "chart.js": "^4.6.1",
