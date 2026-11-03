@@ -1,6 +1,9 @@
 import { Hono } from 'hono'
 import type { Bindings } from '../types'
 import { recordClick } from '../lib/clicks'
+import { clientIp, ipKey, UNKNOWN_IP } from '../lib/client-ip'
+import { MISS_WINDOW_SECONDS, MISSES_PER_IP_PER_WINDOW } from '../lib/limits'
+import { hit, peek, type Limit } from '../lib/ratelimit'
 
 type LinkRow = {
   id: number
@@ -26,15 +29,49 @@ function messagePage(status: number, title: string, message: string): Response {
   })
 }
 
+function throttledPage(retryAfterSeconds: number): Response {
+  const response = messagePage(
+    429,
+    'Too many requests',
+    'Too many unknown links were requested from your network. Please wait a few minutes and try again.',
+  )
+  response.headers.set('Retry-After', String(retryAfterSeconds))
+  return response
+}
+
 redirect.get('/:slug', async (c) => {
   const slug = c.req.param('slug')
+  const now = Math.floor(Date.now() / 1000)
 
-  const link = await c.env.DB
-    .prepare('SELECT id, destination, status, expires_at FROM links WHERE slug = ?')
-    .bind(slug)
-    .first<LinkRow>()
+  const ip = clientIp(c.env, (name) => c.req.header(name))
+  const missLimit: Limit | null =
+    ip === UNKNOWN_IP
+      ? null
+      : {
+          key: `miss-ip:${await ipKey(c.env.DB, ip, now)}`,
+          windowSeconds: MISS_WINDOW_SECONDS,
+          max: MISSES_PER_IP_PER_WINDOW,
+        }
+
+  const [link, missState] = await Promise.all([
+    c.env.DB
+      .prepare('SELECT id, destination, status, expires_at FROM links WHERE slug = ?')
+      .bind(slug)
+      .first<LinkRow>(),
+    missLimit ? peek(c.env.DB, missLimit, now) : Promise.resolve(null),
+  ])
+
+  if (missState && !missState.allowed) {
+    return throttledPage(missState.retryAfterSeconds)
+  }
 
   if (!link) {
+    if (missLimit) {
+      const counted = await hit(c.env.DB, missLimit, now)
+      if (!counted.allowed) {
+        return throttledPage(counted.retryAfterSeconds)
+      }
+    }
     return messagePage(404, 'Link not found', 'This short link does not exist.')
   }
   if (link.status === 'deleted') {
@@ -47,7 +84,6 @@ redirect.get('/:slug', async (c) => {
     return messagePage(404, 'Link unavailable', 'This link is turned off.')
   }
 
-  const now = Math.floor(Date.now() / 1000)
   if (link.expires_at !== null && link.expires_at <= now) {
     return messagePage(410, 'Link expired', 'This link has expired.')
   }

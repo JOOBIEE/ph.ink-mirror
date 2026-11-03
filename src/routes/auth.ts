@@ -2,6 +2,9 @@ import { Hono } from 'hono'
 import type { Bindings } from '../types'
 import { normalizeEmail } from '../lib/email-address'
 import { sendLoginEmail } from '../lib/email'
+import { clientIp, ipKey, UNKNOWN_IP } from '../lib/client-ip'
+import { LOGIN_EMAILS_PER_DAY, LOGINS_PER_IP_PER_HOUR } from '../lib/limits'
+import { hit } from '../lib/ratelimit'
 import { endSession, getSessionUser, startSession } from '../lib/session'
 import { generateToken, hashToken, LOGIN_TOKEN_TTL_SECONDS } from '../lib/tokens'
 
@@ -39,6 +42,25 @@ function invalidLinkPage(): Response {
 }
 
 auth.post('/request', async (c) => {
+  const now = Math.floor(Date.now() / 1000)
+
+  const ip = clientIp(c.env, (name) => c.req.header(name))
+  if (ip !== UNKNOWN_IP) {
+    const perIp = await hit(
+      c.env.DB,
+      {
+        key: `login-ip:${await ipKey(c.env.DB, ip, now)}`,
+        windowSeconds: 3600,
+        max: LOGINS_PER_IP_PER_HOUR,
+      },
+      now,
+    )
+    if (!perIp.allowed) {
+      c.header('Retry-After', String(perIp.retryAfterSeconds))
+      return c.json({ error: 'Too many requests. Please try again later.' }, 429)
+    }
+  }
+
   let body: unknown
   try {
     body = await c.req.json()
@@ -64,14 +86,25 @@ auth.post('/request', async (c) => {
     return c.json({ error: 'The server is not configured.' }, 500)
   }
 
-  const now = Math.floor(Date.now() / 1000)
-
   const recent = await c.env.DB
     .prepare('SELECT COUNT(*) AS total FROM login_tokens WHERE email = ? AND expires_at > ?')
     .bind(check.email, now - 3600 + LOGIN_TOKEN_TTL_SECONDS)
     .first<{ total: number }>()
   if ((recent?.total ?? 0) >= MAX_LINKS_PER_EMAIL_PER_HOUR) {
     return c.json(GENERIC_REPLY)
+  }
+
+  const budget = await hit(
+    c.env.DB,
+    { key: 'login-global', windowSeconds: 86400, max: LOGIN_EMAILS_PER_DAY },
+    now,
+  )
+  if (!budget.allowed) {
+    c.header('Retry-After', String(budget.retryAfterSeconds))
+    return c.json(
+      { error: 'Sign-in emails are temporarily limited. Please try again later.' },
+      503,
+    )
   }
 
   const token = generateToken()

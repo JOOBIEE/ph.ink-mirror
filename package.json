@@ -10,7 +10,8 @@
     "web:build": "vite build --config web/vite.config.ts",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web/tsconfig.json",
     "test": "vitest run",
-    "test:access": "node scripts/access-test.mjs"
+    "test:access": "node scripts/access-test.mjs",
+        "test:abuse": "node scripts/abuse-test.mjs"
   },
   "dependencies": {
     "chart.js": "^4.6.1",

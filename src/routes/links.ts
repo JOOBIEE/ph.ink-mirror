@@ -3,6 +3,15 @@ import { requireUser, type AuthEnv } from '../middleware/auth'
 import { generateSlug, validateCustomSlug } from '../lib/slug'
 import { validateDestination } from '../lib/url'
 import { parseId } from '../lib/ids'
+import { isBlockedDestination } from '../lib/blocklist'
+import { clientIp, ipKey, UNKNOWN_IP } from '../lib/client-ip'
+import {
+  dailyLinkQuota,
+  LINKS_PER_IP_PER_HOUR,
+  LINKS_PER_USER_PER_HOUR,
+} from '../lib/limits'
+import { hit } from '../lib/ratelimit'
+import { linksPaused } from '../lib/settings'
 import {
   deleteLink,
   getLink,
@@ -15,6 +24,7 @@ import {
 
 const MAX_SLUG_ATTEMPTS = 5
 const NOT_FOUND = { error: 'Link not found.' }
+const NOT_ALLOWED = { error: 'This link cannot be shortened.' }
 
 const links = new Hono<AuthEnv>()
 links.use('*', requireUser)
@@ -50,7 +60,47 @@ function cleanTitle(value: string): string | null {
   return value.trim().slice(0, 100) || null
 }
 
+function tooMany(c: Context<AuthEnv>, retryAfterSeconds: number, message: string) {
+  c.header('Retry-After', String(retryAfterSeconds))
+  return c.json({ error: message }, 429)
+}
+
 links.post('/', async (c) => {
+  if (await linksPaused(c.env.DB)) {
+    return c.json(
+      { error: 'Creating new links is temporarily paused. Please try again later.' },
+      503,
+    )
+  }
+
+  const owner = c.get('user')
+  const now = Math.floor(Date.now() / 1000)
+
+  const perUser = await hit(
+    c.env.DB,
+    { key: `link-user:${owner.id}`, windowSeconds: 3600, max: LINKS_PER_USER_PER_HOUR },
+    now,
+  )
+  if (!perUser.allowed) {
+    return tooMany(c, perUser.retryAfterSeconds, 'You are creating links too quickly. Please wait a while.')
+  }
+
+  const ip = clientIp(c.env, (name) => c.req.header(name))
+  if (ip !== UNKNOWN_IP) {
+    const perIp = await hit(
+      c.env.DB,
+      {
+        key: `link-ip:${await ipKey(c.env.DB, ip, now)}`,
+        windowSeconds: 3600,
+        max: LINKS_PER_IP_PER_HOUR,
+      },
+      now,
+    )
+    if (!perIp.allowed) {
+      return tooMany(c, perIp.retryAfterSeconds, 'Too many links were created from your network. Please wait a while.')
+    }
+  }
+
   const input = await readJsonObject(c)
   if (!input) {
     return c.json({ error: 'Send a JSON body.' }, 400)
@@ -62,6 +112,9 @@ links.post('/', async (c) => {
   const destination = validateDestination(input.destination)
   if (!destination.ok) {
     return c.json({ error: destination.reason }, 400)
+  }
+  if (await isBlockedDestination(c.env.DB, destination.url)) {
+    return c.json(NOT_ALLOWED, 400)
   }
 
   let customSlug: string | undefined
@@ -76,8 +129,16 @@ links.post('/', async (c) => {
     customSlug = input.slug
   }
 
+  const quota = await dailyLinkQuota(c.env.DB, owner.id, now)
+  if (quota.used >= quota.cap) {
+    return tooMany(
+      c,
+      3600,
+      `You have reached today's limit of ${quota.cap} new links. Please try again tomorrow.`,
+    )
+  }
+
   const title = typeof input.title === 'string' ? cleanTitle(input.title) : null
-  const owner = c.get('user')
 
   for (let attempt = 0; attempt < MAX_SLUG_ATTEMPTS; attempt++) {
     const slug = customSlug ?? generateSlug()
@@ -133,9 +194,18 @@ links.patch('/:id', async (c) => {
     if (typeof input.destination !== 'string') {
       return c.json({ error: 'Destination must be text.' }, 400)
     }
+    if (await linksPaused(c.env.DB)) {
+      return c.json(
+        { error: 'Changing destinations is temporarily paused. Please try again later.' },
+        503,
+      )
+    }
     const check = validateDestination(input.destination)
     if (!check.ok) {
       return c.json({ error: check.reason }, 400)
+    }
+    if (await isBlockedDestination(c.env.DB, check.url)) {
+      return c.json(NOT_ALLOWED, 400)
     }
     changes.destination = check.url
   }

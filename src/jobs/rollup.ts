@@ -2,6 +2,7 @@ import { utcDay } from '../lib/visitor-hash'
 
 export const RAW_RETENTION_DAYS = 90
 export const SALT_RETENTION_DAYS = 2
+const RATE_LIMIT_RETENTION_DAYS = 2
 const MAX_DAYS_PER_RUN = 31
 const SECONDS_PER_DAY = 86400
 
@@ -52,7 +53,12 @@ async function rollupDay(
 export async function runRollup(
   db: D1Database,
   nowSeconds: number = Math.floor(Date.now() / 1000),
-): Promise<{ daysRolledUp: number; clicksDeleted: number; saltsDeleted: number }> {
+): Promise<{
+  daysRolledUp: number
+  clicksDeleted: number
+  saltsDeleted: number
+  rateRowsDeleted: number
+}> {
   const todayStart = cutoffSeconds(nowSeconds, 0)
 
   const pending = await db
@@ -85,10 +91,16 @@ export async function runRollup(
     .bind(utcDay(cutoffSeconds(nowSeconds, SALT_RETENTION_DAYS)))
     .run()
 
+  const deletedRates = await db
+    .prepare('DELETE FROM rate_limits WHERE window_start < ?')
+    .bind(cutoffSeconds(nowSeconds, RATE_LIMIT_RETENTION_DAYS))
+    .run()
+
   const result = {
     daysRolledUp: pending.results.length,
     clicksDeleted: deletedClicks.meta.changes,
     saltsDeleted: deletedSalts.meta.changes,
+    rateRowsDeleted: deletedRates.meta.changes,
   }
   console.log('rollup finished', JSON.stringify(result))
   return result
