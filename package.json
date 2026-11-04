@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:access": "node scripts/access-test.mjs",
     "test:abuse": "node scripts/abuse-test.mjs",
-    "test:admin": "node scripts/admin-test.mjs"
+    "test:admin": "node scripts/admin-test.mjs",
+        "test:login": "node scripts/login-test.mjs"
   },
   "dependencies": {
     "chart.js": "^4.6.1",

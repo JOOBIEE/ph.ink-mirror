@@ -10,7 +10,7 @@ export type LinkItem = {
   updatedAt: number
 }
 
-export type Me = { id: number; email: string }
+export type Me = { id: number; email: string; isAdmin: boolean }
 
 export class ApiError extends Error {
   readonly status: number
@@ -29,7 +29,7 @@ function readErrorMessage(data: unknown): string {
   return 'Something went wrong. Please try again.'
 }
 
-async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
   const response = await fetch(path, {
     method,
     headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
@@ -52,8 +52,12 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const getMe = () => request<Me>('GET', '/api/auth/me')
 
-export const requestLoginLink = (email: string) =>
-  request<{ ok: boolean; message: string }>('POST', '/api/auth/request', { email })
+export const requestLoginLink = (email: string, next: string | null = null) =>
+  request<{ ok: boolean; message: string }>(
+    'POST',
+    '/api/auth/request',
+    next === null ? { email } : { email, next },
+  )
 
 export const logout = () => request<{ ok: boolean }>('POST', '/api/auth/logout')
 

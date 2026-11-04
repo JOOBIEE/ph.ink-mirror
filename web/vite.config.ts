@@ -18,6 +18,7 @@ export default defineConfig({
         settings: here('./settings.html'),
         qrstudio: here('./qr-studio.html'),
         report: here('./report.html'),
+        admin: here('./admin.html'),
       },
     },
   },

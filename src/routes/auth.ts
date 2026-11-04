@@ -1,10 +1,12 @@
 import { Hono } from 'hono'
 import type { Bindings } from '../types'
+import { isAdminEmail } from '../lib/admin'
 import { normalizeEmail } from '../lib/email-address'
 import { sendLoginEmail } from '../lib/email'
 import { clientIp, ipKey, UNKNOWN_IP } from '../lib/client-ip'
 import { LOGIN_EMAILS_PER_DAY, LOGINS_PER_IP_PER_HOUR } from '../lib/limits'
 import { hit } from '../lib/ratelimit'
+import { safeNext } from '../lib/redirect-target'
 import { endSession, getSessionUser, startSession } from '../lib/session'
 import { generateToken, hashToken, LOGIN_TOKEN_TTL_SECONDS } from '../lib/tokens'
 
@@ -80,6 +82,9 @@ auth.post('/request', async (c) => {
     return c.json({ error: check.reason }, 400)
   }
 
+  // Where to send the person after signing in. Anything not on our list is ignored.
+  const next = typeof input.next === 'string' ? safeNext(input.next) : null
+
   const baseUrl = c.env.APP_URL
   if (!baseUrl) {
     console.error('APP_URL is not set')
@@ -113,7 +118,9 @@ auth.post('/request', async (c) => {
     .bind(await hashToken(token), check.email, now + LOGIN_TOKEN_TTL_SECONDS)
     .run()
 
-  const link = `${baseUrl}/api/auth/verify?token=${token}`
+  const link =
+    `${baseUrl}/api/auth/verify?token=${token}` +
+    (next ? `&next=${encodeURIComponent(next)}` : '')
   try {
     await sendLoginEmail(c.env, check.email, link)
   } catch (error) {
@@ -129,12 +136,14 @@ auth.get('/verify', (c) => {
   if (!TOKEN_FORMAT.test(token)) {
     return invalidLinkPage()
   }
+  const next = safeNext(c.req.query('next'))
   return page(
     200,
     'Sign in to ph.ink',
     '<p>Press the button to finish signing in.</p>' +
       '<form method="post" action="/api/auth/verify">' +
       `<input type="hidden" name="token" value="${token}">` +
+      (next ? `<input type="hidden" name="next" value="${next}">` : '') +
       '<button type="submit">Continue to ph.ink</button></form>',
   )
 })
@@ -145,6 +154,7 @@ auth.post('/verify', async (c) => {
   if (!TOKEN_FORMAT.test(token)) {
     return invalidLinkPage()
   }
+  const next = safeNext(typeof form.next === 'string' ? form.next : undefined)
 
   const now = Math.floor(Date.now() / 1000)
 
@@ -174,7 +184,7 @@ auth.post('/verify', async (c) => {
   }
 
   await startSession(c, user.id)
-  return c.redirect('/dashboard', 303)
+  return c.redirect(next ?? '/dashboard', 303)
 })
 
 auth.get('/me', async (c) => {
@@ -183,7 +193,11 @@ auth.get('/me', async (c) => {
   if (!user) {
     return c.json({ error: 'Not signed in.' }, 401)
   }
-  return c.json({ id: user.id, email: user.email })
+  return c.json({
+    id: user.id,
+    email: user.email,
+    isAdmin: isAdminEmail(user.email, c.env.ADMIN_EMAILS),
+  })
 })
 
 auth.post('/logout', async (c) => {

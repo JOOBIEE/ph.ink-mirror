@@ -20,6 +20,7 @@ const createButton = document.querySelector<HTMLButtonElement>('#create-button')
 const statusBox = document.querySelector<HTMLElement>('#status')
 const linkList = document.querySelector<HTMLUListElement>('#links')
 const emptyNote = document.querySelector<HTMLElement>('#empty')
+const adminLink = document.querySelector<HTMLAnchorElement>('#admin-link')
 
 const BUTTON =
   'rounded-lg border border-zinc-400 px-3 py-1.5 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900/30'
@@ -230,5 +231,6 @@ if (signOutButton) {
 void run(async () => {
   const me = await getMe()
   if (userEmail) userEmail.textContent = me.email
+  if (adminLink && me.isAdmin) adminLink.hidden = false
   await refresh()
 })
