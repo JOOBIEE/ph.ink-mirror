@@ -18,19 +18,35 @@ const BANNED = 'banned@login-test.invalid'
 const REQUESTER = 'requester@login-test.invalid'
 const EMAILS = [ADMIN, PLAIN, BANNED, REQUESTER].map((email) => `'${email}'`).join(', ')
 
+function pause(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+}
+
+// Runs one command against the LOCAL database. Retries only on passing glitches.
+function d1Local(args) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return execFileSync(
+        process.execPath,
+        [WRANGLER, 'd1', 'execute', DB_NAME, '--local', ...args],
+        { stdio: 'pipe' },
+      ).toString()
+    } catch (error) {
+      const detail = `${String(error.stdout ?? '')}${String(error.stderr ?? '')}`.trim()
+      if (attempt < 3 && /internal error|locked|busy/i.test(detail)) {
+        pause(1500)
+        continue
+      }
+      throw new Error(`Local database command failed:\n${detail}`)
+    }
+  }
+}
+
 function runSql(sql) {
   mkdirSync('.wrangler', { recursive: true })
   writeFileSync(SQL_FILE, sql)
   try {
-    execFileSync(
-      process.execPath,
-      [WRANGLER, 'd1', 'execute', DB_NAME, '--local', '--file', SQL_FILE],
-      { stdio: 'pipe' },
-    )
-  } catch (error) {
-    console.error('Database command failed:')
-    console.error(String(error.stdout ?? ''), String(error.stderr ?? ''))
-    process.exit(1)
+    d1Local(['--file', SQL_FILE])
   } finally {
     try {
       unlinkSync(SQL_FILE)
@@ -39,19 +55,7 @@ function runSql(sql) {
 }
 
 function queryJson(sql) {
-  let out
-  try {
-    out = execFileSync(
-      process.execPath,
-      [WRANGLER, 'd1', 'execute', DB_NAME, '--local', '--json', '--command', sql],
-      { stdio: 'pipe' },
-    ).toString()
-  } catch (error) {
-    console.error('Database query failed:', sql)
-    console.error(String(error.stdout ?? ''), String(error.stderr ?? ''))
-    process.exit(1)
-  }
-
+  const out = d1Local(['--json', '--command', sql])
   const end = out.lastIndexOf(']')
   let start = out.indexOf('[')
   while (start !== -1 && start < end) {
@@ -65,11 +69,8 @@ function queryJson(sql) {
     }
     start = out.indexOf('[', start + 1)
   }
-  console.error('Could not read the database answer for:', sql)
-  console.error(out)
-  process.exit(1)
+  throw new Error(`Could not read the database answer for: ${sql}\n${out}`)
 }
-
 const CLEANUP_SQL = `
 DELETE FROM rate_limits;
 DELETE FROM sessions WHERE user_id IN (SELECT id FROM users WHERE email IN (${EMAILS}));

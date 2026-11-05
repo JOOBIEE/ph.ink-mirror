@@ -78,6 +78,8 @@ const ACTION_LABELS: Record<string, string> = {
   pause_links: 'Paused link creation',
   resume_links: 'Resumed link creation',
   view_account: 'Opened an account page',
+    block_domain: 'Blocked a domain',
+  unblock_domain: 'Removed a domain from the blocklist',
 }
 
 function byId<T extends HTMLElement>(id: string): T {

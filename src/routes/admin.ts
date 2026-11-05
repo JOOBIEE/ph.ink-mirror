@@ -27,6 +27,9 @@ import {
   restoreLink,
   setLinksPaused,
   unbanAccount,
+    addBlockedDomain,
+  listBlockedDomains,
+  removeBlockedDomain,
 } from '../lib/admin-store'
 import {
   fetchStatRows,
@@ -38,6 +41,7 @@ import {
 import { parseId } from '../lib/ids'
 import { readJsonObject } from '../lib/json-body'
 import { getLink } from '../lib/link-store'
+import { normalizeBlockDomain } from '../lib/blocklist'
 
 const NOT_FOUND = { error: 'Not found.' }
 const BAD_RANGE = { error: 'Period must be 7, 30, 90 or 365 days.' }
@@ -296,4 +300,42 @@ admin.get('/audit', async (c) => {
   return c.json({ entries })
 })
 
+// ---------- Blocked domains ----------
+
+admin.get('/blocked-domains', async (c) => {
+  const { limit, offset } = parsePaging(c.req.query('limit'), c.req.query('offset'))
+  return c.json({ domains: await listBlockedDomains(c.env.DB, limit, offset) })
+})
+
+admin.post('/blocked-domains', async (c) => {
+  const input = await readJsonObject(c)
+  if (!input || typeof input.domain !== 'string') {
+    return c.json({ error: 'Enter a domain.' }, 400)
+  }
+
+  const domain = normalizeBlockDomain(input.domain)
+  if (domain === null) {
+    return c.json({ error: 'That is not a valid domain name, for example evil.example.' }, 400)
+  }
+
+  const note = cleanNote(input.reason)
+  if (!note.ok) return c.json(BAD_NOTE, 400)
+
+  const result = await addBlockedDomain(
+    c.env.DB,
+    c.get('admin').id,
+    domain,
+    note.text,
+    nowSeconds(),
+  )
+  return c.json({ ok: true, domain, ...result })
+})
+
+admin.delete('/blocked-domains/:domain', async (c) => {
+  const domain = normalizeBlockDomain(c.req.param('domain'))
+  if (domain === null) return c.json(NOT_FOUND, 404)
+
+  const result = await removeBlockedDomain(c.env.DB, c.get('admin').id, domain, nowSeconds())
+  return result.ok ? c.json({ ok: true }) : c.json({ error: result.error }, result.status)
+})
 export default admin

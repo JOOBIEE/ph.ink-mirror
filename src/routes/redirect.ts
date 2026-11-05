@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import type { Bindings } from '../types'
+import { isBlockedDestination } from '../lib/blocklist'
 import { recordClick } from '../lib/clicks'
 import { clientIp, ipKey, UNKNOWN_IP } from '../lib/client-ip'
 import { MISS_WINDOW_SECONDS, MISSES_PER_IP_PER_WINDOW } from '../lib/limits'
@@ -86,6 +87,11 @@ redirect.get('/:slug', async (c) => {
 
   if (link.expires_at !== null && link.expires_at <= now) {
     return messagePage(410, 'Link expired', 'This link has expired.')
+  }
+
+  // A domain added to the blocklist stops working immediately, even for links made before.
+  if (await isBlockedDestination(c.env.DB, link.destination)) {
+    return messagePage(403, 'Link blocked', 'This link was blocked for breaking our rules.')
   }
 
   if (c.req.method !== 'HEAD') {

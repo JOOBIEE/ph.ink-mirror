@@ -13,7 +13,10 @@
     "test:access": "node scripts/access-test.mjs",
     "test:abuse": "node scripts/abuse-test.mjs",
     "test:admin": "node scripts/admin-test.mjs",
-        "test:login": "node scripts/login-test.mjs"
+        "test:login": "node scripts/login-test.mjs",
+            "test:blocklist": "node scripts/blocklist-test.mjs",
+                "test:clean": "node scripts/clean-test-data.mjs",
+    "test:all": "npm run test:clean && npm run test:access && npm run test:abuse && npm run test:admin && npm run test:blocklist && npm run test:login"
   },
   "dependencies": {
     "chart.js": "^4.6.1",

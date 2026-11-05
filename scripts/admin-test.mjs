@@ -19,19 +19,35 @@ const MAL = `mallory@${DOMAIN}`
 const NINA = `nina@${DOMAIN}`
 const PHISH = 'admin-test-phish.example'
 
+function pause(ms) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms)
+}
+
+// Runs one command against the LOCAL database. Retries only on passing glitches.
+function d1Local(args) {
+  for (let attempt = 1; ; attempt++) {
+    try {
+      return execFileSync(
+        process.execPath,
+        [WRANGLER, 'd1', 'execute', DB_NAME, '--local', ...args],
+        { stdio: 'pipe' },
+      ).toString()
+    } catch (error) {
+      const detail = `${String(error.stdout ?? '')}${String(error.stderr ?? '')}`.trim()
+      if (attempt < 3 && /internal error|locked|busy/i.test(detail)) {
+        pause(1500)
+        continue
+      }
+      throw new Error(`Local database command failed:\n${detail}`)
+    }
+  }
+}
+
 function runSql(sql) {
   mkdirSync('.wrangler', { recursive: true })
   writeFileSync(SQL_FILE, sql)
   try {
-    execFileSync(
-      process.execPath,
-      [WRANGLER, 'd1', 'execute', DB_NAME, '--local', '--file', SQL_FILE],
-      { stdio: 'pipe' },
-    )
-  } catch (error) {
-    console.error('Database command failed:')
-    console.error(String(error.stdout ?? ''), String(error.stderr ?? ''))
-    process.exit(1)
+    d1Local(['--file', SQL_FILE])
   } finally {
     try {
       unlinkSync(SQL_FILE)
@@ -40,19 +56,7 @@ function runSql(sql) {
 }
 
 function queryJson(sql) {
-  let out
-  try {
-    out = execFileSync(
-      process.execPath,
-      [WRANGLER, 'd1', 'execute', DB_NAME, '--local', '--json', '--command', sql],
-      { stdio: 'pipe' },
-    ).toString()
-  } catch (error) {
-    console.error('Database query failed:', sql)
-    console.error(String(error.stdout ?? ''), String(error.stderr ?? ''))
-    process.exit(1)
-  }
-
+  const out = d1Local(['--json', '--command', sql])
   const end = out.lastIndexOf(']')
   let start = out.indexOf('[')
   while (start !== -1 && start < end) {
@@ -66,11 +70,8 @@ function queryJson(sql) {
     }
     start = out.indexOf('[', start + 1)
   }
-  console.error('Could not read the database answer for:', sql)
-  console.error(out)
-  process.exit(1)
+  throw new Error(`Could not read the database answer for: ${sql}\n${out}`)
 }
-
 const TEST_USERS = `(SELECT id FROM users WHERE email LIKE '%@${DOMAIN}')`
 const TEST_LINKS = `(SELECT id FROM links WHERE owner_id IN ${TEST_USERS})`
 
@@ -431,6 +432,14 @@ VALUES (${m1.id}, ${now}, 'NG', 'mobile', 'Chrome', 'mallory-referrer.example', 
     check(
       'the status filter shows only blocked links, including this one',
       blockedLinks.some((l) => l.id === m1.id) && blockedLinks.every((l) => l.status === 'blocked'),
+    )
+        check(
+      'a link cannot be restored while its domain is still blocklisted (409)',
+      (await adm('POST', `/api/admin/links/${m1.id}/restore`)).status === 409,
+    )
+    check(
+      'the admin can take the domain off the blocklist (200)',
+      (await adm('DELETE', `/api/admin/blocked-domains/${PHISH}`)).status === 200,
     )
     check('the admin can restore the link (200)', (await adm('POST', `/api/admin/links/${m1.id}/restore`)).status === 200)
     const restored = linkRow(m1.id)

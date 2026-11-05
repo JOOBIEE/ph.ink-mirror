@@ -1,4 +1,5 @@
 import { blockableHost, likePattern } from './admin'
+import { domainCandidates, hostOf, isBlockedDestination } from './blocklist'
 import { LOGIN_EMAILS_PER_DAY } from './limits'
 import { peek } from './ratelimit'
 import { getSetting, LINKS_PAUSED_KEY } from './settings'
@@ -354,12 +355,7 @@ export async function blockLink(
   }
   if (link.status === 'blocked') return { ok: true, changed: false }
 
-  const host = alsoBlockDomain ? blockableHost(link.destination) : null
-  const detail =
-    [note, host ? `domain blocked: ${host}` : null].filter((part) => part !== null).join(' | ') ||
-    null
-
-  const statements = [
+  await db.batch([
     db
       .prepare(
         `UPDATE links SET status = 'blocked', block_reason = 'admin', updated_at = ?
@@ -372,22 +368,17 @@ export async function blockLink(
          WHERE link_id = ? AND status = 'open'`,
       )
       .bind(now, adminId, linkId),
-  ]
-  if (host) {
-    statements.push(
-      db
-        .prepare(
-          'INSERT OR IGNORE INTO blocked_domains (domain, reason, created_at) VALUES (?, ?, ?)',
-        )
-        .bind(host, note, now),
-    )
-  }
-  statements.push(audit(db, adminId, 'block_link', 'link', linkId, detail, now))
+    audit(db, adminId, 'block_link', 'link', linkId, note, now),
+  ])
 
-  await db.batch(statements)
+  if (alsoBlockDomain) {
+    const host = blockableHost(link.destination)
+    if (host) {
+      await addBlockedDomain(db, adminId, host, note, now)
+    }
+  }
   return { ok: true, changed: true }
 }
-
 export async function restoreLink(
   db: D1Database,
   adminId: number,
@@ -396,17 +387,24 @@ export async function restoreLink(
 ): Promise<ActionResult> {
   const row = await db
     .prepare(
-      `SELECT l.status AS status, u.status AS ownerStatus
+      `SELECT l.status AS status, l.destination AS destination, u.status AS ownerStatus
        FROM links l JOIN users u ON u.id = l.owner_id WHERE l.id = ?`,
     )
     .bind(linkId)
-    .first<{ status: string; ownerStatus: string }>()
+    .first<{ status: string; destination: string; ownerStatus: string }>()
   if (!row) return { ok: false, status: 404, error: 'Link not found.' }
   if (row.status !== 'blocked') {
     return { ok: false, status: 409, error: 'That link is not blocked.' }
   }
   if (row.ownerStatus === 'banned') {
     return { ok: false, status: 409, error: 'Unban the account first.' }
+  }
+  if (await isBlockedDestination(db, row.destination)) {
+    return {
+      ok: false,
+      status: 409,
+      error: 'Its domain is on the blocklist. Remove the domain from the blocklist first.',
+    }
   }
 
   await db.batch([
@@ -420,7 +418,6 @@ export async function restoreLink(
   ])
   return { ok: true, changed: true }
 }
-
 export async function dismissReport(
   db: D1Database,
   adminId: number,
@@ -525,4 +522,121 @@ export async function setLinksPaused(
       .bind(LINKS_PAUSED_KEY, paused ? '1' : '0', now),
     audit(db, adminId, paused ? 'pause_links' : 'resume_links', 'system', null, null, now),
   ])
+}
+
+
+// ---------- Blocked domains ----------
+
+const MAX_IDS_PER_STATEMENT = 90
+const MAX_SWEEP_CANDIDATES = 500
+
+export type BlockedDomain = { domain: string; reason: string | null; createdAt: number }
+
+export async function listBlockedDomains(
+  db: D1Database,
+  limit: number,
+  offset: number,
+): Promise<BlockedDomain[]> {
+  const result = await db
+    .prepare(
+      `SELECT domain, reason, created_at AS createdAt
+       FROM blocked_domains
+       ORDER BY created_at DESC, domain
+       LIMIT ? OFFSET ?`,
+    )
+    .bind(limit, offset)
+    .all<BlockedDomain>()
+  return result.results
+}
+
+export async function addBlockedDomain(
+  db: D1Database,
+  adminId: number,
+  domain: string,
+  note: string | null,
+  now: number,
+): Promise<{ changed: boolean; linksBlocked: number }> {
+  const existing = await db
+    .prepare('SELECT 1 AS found FROM blocked_domains WHERE domain = ?')
+    .bind(domain)
+    .first()
+
+  const candidates = await db
+    .prepare(
+      `SELECT id, destination FROM links
+       WHERE status IN ('active', 'disabled') AND destination LIKE ? ESCAPE '\\'
+       LIMIT ?`,
+    )
+    .bind(likePattern(domain), MAX_SWEEP_CANDIDATES)
+    .all<{ id: number; destination: string }>()
+
+  const ids = candidates.results
+    .filter((row) => {
+      const host = hostOf(row.destination)
+      return host !== null && domainCandidates(host).includes(domain)
+    })
+    .map((row) => row.id)
+
+  if (existing && ids.length === 0) {
+    return { changed: false, linksBlocked: 0 }
+  }
+
+  const statements: D1PreparedStatement[] = [
+    db
+      .prepare('INSERT OR IGNORE INTO blocked_domains (domain, reason, created_at) VALUES (?, ?, ?)')
+      .bind(domain, note, now),
+  ]
+  for (let i = 0; i < ids.length; i += MAX_IDS_PER_STATEMENT) {
+    const chunk = ids.slice(i, i + MAX_IDS_PER_STATEMENT)
+    const marks = chunk.map(() => '?').join(', ')
+    statements.push(
+      db
+        .prepare(
+          `UPDATE links SET status = 'blocked', block_reason = 'domain_blocked', updated_at = ?
+           WHERE status IN ('active', 'disabled') AND id IN (${marks})`,
+        )
+        .bind(now, ...chunk),
+      db
+        .prepare(
+          `UPDATE reports SET status = 'actioned', handled_at = ?, handled_by = ?
+           WHERE status = 'open' AND link_id IN (${marks})`,
+        )
+        .bind(now, adminId, ...chunk),
+    )
+  }
+  statements.push(
+    audit(
+      db,
+      adminId,
+      'block_domain',
+      'system',
+      null,
+      `${domain}: ${ids.length} existing links blocked` + (note ? ` | ${note}` : ''),
+      now,
+    ),
+  )
+
+  await db.batch(statements)
+  return { changed: true, linksBlocked: ids.length }
+}
+
+export async function removeBlockedDomain(
+  db: D1Database,
+  adminId: number,
+  domain: string,
+  now: number,
+): Promise<ActionResult> {
+  const existing = await db
+    .prepare('SELECT 1 AS found FROM blocked_domains WHERE domain = ?')
+    .bind(domain)
+    .first()
+  if (!existing) {
+    return { ok: false, status: 404, error: 'That domain is not on the blocklist.' }
+  }
+
+  await db.batch([
+    db.prepare('DELETE FROM blocked_domains WHERE domain = ?').bind(domain),
+    audit(db, adminId, 'unblock_domain', 'system', null, domain, now),
+  ])
+  return { ok: true, changed: true }
 }

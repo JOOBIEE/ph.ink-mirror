@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { domainCandidates, isBlockedDestination } from '../src/lib/blocklist'
+import {
+  domainCandidates,
+  hostOf,
+  isBlockedDestination,
+  normalizeBlockDomain,
+} from '../src/lib/blocklist'
 
 function dbBlocking(domains: string[]): D1Database {
   return {
@@ -16,6 +21,21 @@ function dbBlocking(domains: string[]): D1Database {
     },
   } as unknown as D1Database
 }
+
+describe('hostOf', () => {
+  it('lowercases and removes a trailing dot', () => {
+    expect(hostOf('https://WWW.Evil.com./x?y=1')).toBe('www.evil.com')
+  })
+
+  it('ignores the port', () => {
+    expect(hostOf('http://localhost:8787/')).toBe('localhost')
+  })
+
+  it('returns null for something that is not an address', () => {
+    expect(hostOf('not a url')).toBeNull()
+    expect(hostOf('')).toBeNull()
+  })
+})
 
 describe('domainCandidates', () => {
   it('lists a plain domain once', () => {
@@ -42,6 +62,35 @@ describe('domainCandidates', () => {
     expect(result).toHaveLength(10)
     expect(result[result.length - 1]).toBe('k.com')
     expect(result).not.toContain(host)
+  })
+})
+
+describe('normalizeBlockDomain', () => {
+  it.each([
+    ['a plain domain', 'evil.example', 'evil.example'],
+    ['capitals and spaces', '  EVIL.Example  ', 'evil.example'],
+    ['a trailing dot', 'evil.example.', 'evil.example'],
+    ['a subdomain', 'a.b.evil.example', 'a.b.evil.example'],
+    ['an international domain in ASCII form', 'xn--mnchen-3ya.de', 'xn--mnchen-3ya.de'],
+  ])('accepts %s', (_name, input, expected) => {
+    expect(normalizeBlockDomain(input)).toBe(expected)
+  })
+
+  it.each([
+    ['empty text', ''],
+    ['a single word', 'com'],
+    ['a path', 'evil.example/login'],
+    ['a scheme', 'https://evil.example'],
+    ['spaces', 'evil example.com'],
+    ['an IPv4 address', '203.0.113.45'],
+    ['a label that is too long', 'a'.repeat(64) + '.example'],
+    ['a leading hyphen', '-evil.example'],
+    ['a trailing hyphen', 'evil-.example'],
+    ['an underscore', 'ev_il.example'],
+    ['a one-letter ending', 'evil.e'],
+    ['more than 253 characters', ('a'.repeat(60) + '.').repeat(5) + 'com'],
+  ])('rejects %s', (_name, input) => {
+    expect(normalizeBlockDomain(input)).toBeNull()
   })
 })
 

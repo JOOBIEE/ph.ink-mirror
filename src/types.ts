@@ -5,4 +5,5 @@ export type Bindings = {
   RESEND_API_KEY?: string
   EMAIL_FROM?: string
   ADMIN_EMAILS?: string
+  URLHAUS_AUTH_KEY?: string
 }
