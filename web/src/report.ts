@@ -1,4 +1,5 @@
 import { ApiError, submitReport } from './api'
+import { setupTurnstile, type TurnstileHandle } from './turnstile'
 
 const form = document.querySelector<HTMLFormElement>('#report-form')
 const linkInput = document.querySelector<HTMLInputElement>('#link')
@@ -6,6 +7,9 @@ const reasonSelect = document.querySelector<HTMLSelectElement>('#reason')
 const detailsInput = document.querySelector<HTMLTextAreaElement>('#details')
 const submitButton = document.querySelector<HTMLButtonElement>('#submit')
 const statusBox = document.querySelector<HTMLElement>('#status')
+const turnstileBox = document.querySelector<HTMLElement>('#turnstile-box')
+
+let check: TurnstileHandle | null = null
 
 function show(message: string, isError: boolean): void {
   if (!statusBox) return
@@ -18,6 +22,14 @@ function show(message: string, isError: boolean): void {
 const prefill = new URLSearchParams(window.location.search).get('link')
 if (prefill && linkInput) {
   linkInput.value = prefill.slice(0, 300)
+}
+
+if (turnstileBox && submitButton) {
+  submitButton.disabled = true
+  void setupTurnstile(turnstileBox, (message) => show(message, true)).then((handle) => {
+    check = handle
+    submitButton.disabled = false
+  })
 }
 
 if (form) {
@@ -37,6 +49,12 @@ if (form) {
       return
     }
 
+    const token = check?.getToken() ?? null
+    if (check?.enabled && !token) {
+      show('Please wait for the security check to finish, then try again.', true)
+      return
+    }
+
     submitButton.disabled = true
     show('Sending...', false)
     try {
@@ -44,6 +62,7 @@ if (form) {
         link,
         reason: reasonSelect.value,
         details: detailsInput.value.trim(),
+        turnstileToken: token,
       })
       show(result.message, false)
       form.reset()
@@ -56,6 +75,7 @@ if (form) {
       )
     } finally {
       submitButton.disabled = false
+      check?.reset()
     }
   })
 }

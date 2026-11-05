@@ -80,6 +80,14 @@ DELETE FROM users WHERE email IN (${EMAILS});
 
 const sha256 = (text) => createHash('sha256').update(text).digest('hex')
 
+
+const DUMMY_TURNSTILE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX'
+
+function withTurnstile(path, body) {
+  return path === '/api/auth/request' || path === '/api/report'
+    ? { turnstileToken: DUMMY_TURNSTILE_TOKEN, ...body }
+    : body
+}
 function newToken(email, secondsValid = 900) {
   const token = randomBytes(32).toString('hex')
   const expires = Math.floor(Date.now() / 1000) + secondsValid
@@ -130,7 +138,7 @@ async function postJson(path, body, ip) {
   const response = await fetch(BASE + path, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-dev-ip': ip },
-    body: JSON.stringify(body),
+        body: JSON.stringify(withTurnstile(path, body)),
   })
   await response.text()
   return response.status

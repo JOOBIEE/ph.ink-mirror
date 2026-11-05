@@ -50,14 +50,21 @@ export async function request<T>(method: string, path: string, body?: unknown): 
   return data as T
 }
 
+export const getPublicConfig = () =>
+  request<{ turnstileSiteKey: string | null }>('GET', '/api/config')
+
 export const getMe = () => request<Me>('GET', '/api/auth/me')
 
-export const requestLoginLink = (email: string, next: string | null = null) =>
-  request<{ ok: boolean; message: string }>(
-    'POST',
-    '/api/auth/request',
-    next === null ? { email } : { email, next },
-  )
+export const requestLoginLink = (
+  email: string,
+  next: string | null = null,
+  turnstileToken: string | null = null,
+) =>
+  request<{ ok: boolean; message: string }>('POST', '/api/auth/request', {
+    email,
+    ...(next === null ? {} : { next }),
+    ...(turnstileToken === null ? {} : { turnstileToken }),
+  })
 
 export const logout = () => request<{ ok: boolean }>('POST', '/api/auth/logout')
 
@@ -130,5 +137,15 @@ export const saveQrStyle = (linkId: number, style: SavedQrStyle) =>
 export const resetQrStyle = (linkId: number) =>
   request<{ ok: boolean }>('DELETE', `/api/qr/${linkId}`)
 
-export const submitReport = (input: { link: string; reason: string; details: string }) =>
-  request<{ ok: boolean; message: string }>('POST', '/api/report', input)
+export const submitReport = (input: {
+  link: string
+  reason: string
+  details: string
+  turnstileToken: string | null
+}) =>
+  request<{ ok: boolean; message: string }>('POST', '/api/report', {
+    link: input.link,
+    reason: input.reason,
+    details: input.details,
+    ...(input.turnstileToken === null ? {} : { turnstileToken: input.turnstileToken }),
+  })

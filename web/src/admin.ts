@@ -12,6 +12,7 @@ import { ApiError, logout, type Breakdown } from './api'
 import {
   banAccount,
   blockAdminLink,
+  blockDomain,
   blockReportLink,
   dismissReport,
   getAccountAnalytics,
@@ -22,14 +23,17 @@ import {
   listAdminLinks,
   listAdminReports,
   listAudit,
+  listBlockedDomains,
   restoreAdminLink,
   setKillSwitch,
   unbanAccount,
+  unblockDomain,
   type AccountAnalytics,
   type AdminAccount,
   type AdminLink,
   type AdminReport,
   type AuditEntry,
+  type BlockedDomain,
   type Overview,
 } from './admin-api'
 
@@ -78,8 +82,14 @@ const ACTION_LABELS: Record<string, string> = {
   pause_links: 'Paused link creation',
   resume_links: 'Resumed link creation',
   view_account: 'Opened an account page',
-    block_domain: 'Blocked a domain',
+  block_domain: 'Blocked a domain',
   unblock_domain: 'Removed a domain from the blocklist',
+}
+
+const BLOCK_REASON_LABELS: Record<string, string> = {
+  admin: 'blocked by an admin',
+  account_banned: 'blocked with the account',
+  domain_blocked: 'blocked with its domain',
 }
 
 function byId<T extends HTMLElement>(id: string): T {
@@ -108,13 +118,14 @@ const signOutButton = byId<HTMLButtonElement>('sign-out')
 const statusBox = byId<HTMLElement>('status')
 const reportsBadge = byId<HTMLElement>('reports-badge')
 
-type Tab = 'overview' | 'reports' | 'links' | 'accounts' | 'audit'
-const TABS: Tab[] = ['overview', 'reports', 'links', 'accounts', 'audit']
+type Tab = 'overview' | 'reports' | 'links' | 'accounts' | 'domains' | 'audit'
+const TABS: Tab[] = ['overview', 'reports', 'links', 'accounts', 'domains', 'audit']
 const tabButtons: Record<Tab, HTMLButtonElement> = {
   overview: byId('tab-btn-overview'),
   reports: byId('tab-btn-reports'),
   links: byId('tab-btn-links'),
   accounts: byId('tab-btn-accounts'),
+  domains: byId('tab-btn-domains'),
   audit: byId('tab-btn-audit'),
 }
 const tabPanels: Record<Tab, HTMLElement> = {
@@ -122,6 +133,7 @@ const tabPanels: Record<Tab, HTMLElement> = {
   reports: byId('tab-reports'),
   links: byId('tab-links'),
   accounts: byId('tab-accounts'),
+  domains: byId('tab-domains'),
   audit: byId('tab-audit'),
 }
 const TAB_ACTIVE = ['bg-zinc-900', 'text-white', 'hover:bg-zinc-800']
@@ -169,6 +181,13 @@ const acctChart = byId<HTMLCanvasElement>('acct-chart')
 const acctLinks = byId<HTMLElement>('acct-links')
 const acctReports = byId<HTMLElement>('acct-reports')
 const acctAudit = byId<HTMLElement>('acct-audit')
+
+const domainsForm = byId<HTMLFormElement>('domains-form')
+const domainsInput = byId<HTMLInputElement>('domains-input')
+const domainsReason = byId<HTMLInputElement>('domains-reason')
+const domainsList = byId<HTMLElement>('domains-list')
+const domainsEmpty = byId<HTMLElement>('domains-empty')
+const domainsMore = byId<HTMLButtonElement>('domains-more')
 
 const auditFilter = byId<HTMLSelectElement>('audit-filter')
 const auditList = byId<HTMLElement>('audit-list')
@@ -355,7 +374,7 @@ function makeLoader<T>(config: {
   }
 }
 
-// ---------- Rendering: links, reports, accounts, audit ----------
+// ---------- Rendering: links, reports, accounts, domains, audit ----------
 
 function ownerButton(ownerId: number, email: string, status = 'active'): HTMLButtonElement {
   const label = status === 'active' ? email : `${email} (${status})`
@@ -462,11 +481,7 @@ function renderLink(link: AdminLink, showOwner: boolean): HTMLLIElement {
   badges.append(badge(link.status))
   if (link.status === 'blocked' && link.blockReason) {
     badges.append(
-      el(
-        'span',
-        'text-xs text-zinc-700',
-        link.blockReason === 'account_banned' ? 'blocked with the account' : 'blocked by an admin',
-      ),
+      el('span', 'text-xs text-zinc-700', BLOCK_REASON_LABELS[link.blockReason] ?? 'blocked'),
     )
   }
   if (link.openReports > 0) {
@@ -517,7 +532,8 @@ function renderLink(link: AdminLink, showOwner: boolean): HTMLLIElement {
       actionButton('Restore link', async () => {
         const answer = await ask({
           title: 'Restore this link?',
-          message: 'The link will redirect visitors again.',
+          message:
+            'The link will redirect visitors again. This is refused while its domain is on the blocklist.',
           confirmLabel: 'Restore',
           danger: false,
           showReason: false,
@@ -576,6 +592,46 @@ function renderAccountRow(account: AdminAccount): HTMLLIElement {
 
   const actions = el('div', 'mt-3')
   actions.append(actionButton('Open account', () => openAccount(account.id)))
+  item.append(actions)
+  return item
+}
+
+function renderDomain(entry: BlockedDomain): HTMLLIElement {
+  const item = el('li', 'rounded-xl border border-zinc-300 p-4')
+
+  const top = el('div', 'flex flex-wrap items-center justify-between gap-2')
+  top.append(
+    el('h3', 'break-all font-mono text-sm font-bold', entry.domain),
+    el('span', 'text-xs text-zinc-700', `Added ${fmtDate(entry.createdAt)}`),
+  )
+  item.append(top)
+
+  item.append(
+    el(
+      'p',
+      'mt-1 whitespace-pre-wrap break-words text-sm text-zinc-700',
+      entry.reason ?? 'No reason recorded.',
+    ),
+  )
+
+  const actions = el('div', 'mt-3')
+  actions.append(
+    actionButton('Remove from blocklist', async () => {
+      const answer = await ask({
+        title: `Remove ${entry.domain} from the blocklist?`,
+        message:
+          'People will be able to shorten links to this domain again. Links that were blocked because of it stay blocked until you restore them one by one.',
+        confirmLabel: 'Remove',
+        danger: false,
+        showReason: false,
+        showDomain: false,
+      })
+      if (!answer) return
+      await unblockDomain(entry.domain)
+      showStatus(`${entry.domain} removed from the blocklist.`, false)
+      await afterAction()
+    }),
+  )
   item.append(actions)
   return item
 }
@@ -641,6 +697,15 @@ const loadAccounts = makeLoader<AdminAccount>({
   list: accountsList,
   moreButton: accountsMore,
   emptyNote: accountsEmpty,
+})
+
+const loadDomains = makeLoader<BlockedDomain>({
+  fetchPage: async (offset) =>
+    (await listBlockedDomains({ offset, limit: PAGE_SIZE })).domains,
+  render: renderDomain,
+  list: domainsList,
+  moreButton: domainsMore,
+  emptyNote: domainsEmpty,
 })
 
 const loadAudit = makeLoader<AuditEntry>({
@@ -950,6 +1015,9 @@ async function openTab(tab: Tab, load = true): Promise<void> {
     case 'accounts':
       if (currentAccountId === null) await loadAccounts(true)
       break
+    case 'domains':
+      await loadDomains(true)
+      break
     case 'audit':
       await loadAudit(true)
       break
@@ -968,6 +1036,9 @@ async function afterAction(): Promise<void> {
     case 'accounts':
       if (currentAccountId === null) await loadAccounts(true)
       else await openAccount(currentAccountId)
+      break
+    case 'domains':
+      await loadDomains(true)
       break
     case 'audit':
       await loadAudit(true)
@@ -1000,9 +1071,43 @@ accountsFilters.addEventListener('submit', (event) => {
   void run(() => loadAccounts(true))
 })
 
+domainsForm.addEventListener('submit', (event) => {
+  event.preventDefault()
+  const domain = domainsInput.value.trim()
+  if (!domain) {
+    showStatus('Enter a domain, for example evil.example.', true)
+    domainsInput.focus()
+    return
+  }
+  void run(async () => {
+    const answer = await ask({
+      title: `Block ${domain}?`,
+      message:
+        'Nobody will be able to shorten links to this domain or its subdomains, and every existing link to it is blocked now.',
+      confirmLabel: 'Block domain',
+      danger: true,
+      showReason: false,
+      showDomain: false,
+    })
+    if (!answer) return
+
+    const result = await blockDomain(domain, domainsReason.value.trim())
+    domainsInput.value = ''
+    domainsReason.value = ''
+    showStatus(
+      result.changed
+        ? `Blocked ${result.domain}. ${result.linksBlocked} existing link${result.linksBlocked === 1 ? '' : 's'} blocked.`
+        : `${result.domain} is already on the blocklist.`,
+      false,
+    )
+    await afterAction()
+  })
+})
+
 reportsMore.addEventListener('click', () => void run(() => loadReports(false)))
 linksMore.addEventListener('click', () => void run(() => loadLinks(false)))
 accountsMore.addEventListener('click', () => void run(() => loadAccounts(false)))
+domainsMore.addEventListener('click', () => void run(() => loadDomains(false)))
 auditMore.addEventListener('click', () => void run(() => loadAudit(false)))
 
 accountBack.addEventListener('click', () => {
@@ -1037,7 +1142,7 @@ async function init(): Promise<void> {
       gateText.textContent =
         'Admin sessions last 12 hours. Sign in with a new email link, then open this page again.'
       const link = el('a', 'btn mt-4 inline-block', 'Go to sign in')
-            link.href = '/login?next=/admin&fresh=1'
+      link.href = '/login?next=/admin&fresh=1'
       gateText.append(el('br'), link)
     } else {
       gateTitle.textContent = 'Page not found'

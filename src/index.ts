@@ -8,6 +8,7 @@ import account from './routes/account'
 import qr from './routes/qr'
 import report from './routes/report'
 import admin from './routes/admin'
+import config from './routes/config'
 import { originCheck } from './middleware/origin-check'
 import { runRollup } from './jobs/rollup'
 
@@ -25,6 +26,7 @@ app.route('/api/account', account)
 app.route('/api/qr', qr)
 app.route('/api/report', report)
 app.route('/api/admin', admin)
+app.route('/api/config', config)
 app.route('/', redirect)
 
 export default {

@@ -51,6 +51,8 @@
           <textarea id="details" rows="4" maxlength="1000" class="field"></textarea>
         </div>
 
+        <div id="turnstile-box" class="min-h-[65px]"></div>
+
         <button id="submit" type="submit" class="btn-primary">Send report</button>
       </form>
 
@@ -58,7 +60,8 @@
 
       <p class="mt-8 text-xs text-zinc-700">
         We store your report and a scrambled network fingerprint that is deleted within two days,
-        so we can ignore repeats. We do not store your IP address or any account details.
+        so we can ignore repeats. We do not store your IP address or any account details. To block
+        automated reports, this page loads a security check from Cloudflare (Turnstile).
       </p>
     </main>
 

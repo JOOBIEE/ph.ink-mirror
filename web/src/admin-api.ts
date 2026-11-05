@@ -159,3 +159,19 @@ export const listAudit = (options: {
   offset: number
   limit: number
 }) => request<{ entries: AuditEntry[] }>('GET', `/api/admin/audit${query(options)}`)
+
+
+export type BlockedDomain = { domain: string; reason: string | null; createdAt: number }
+
+export const listBlockedDomains = (options: { offset: number; limit: number }) =>
+  request<{ domains: BlockedDomain[] }>('GET', `/api/admin/blocked-domains${query(options)}`)
+
+export const blockDomain = (domain: string, reason: string) =>
+  request<{ ok: boolean; domain: string; changed: boolean; linksBlocked: number }>(
+    'POST',
+    '/api/admin/blocked-domains',
+    { domain, reason },
+  )
+
+export const unblockDomain = (domain: string) =>
+  request<{ ok: boolean }>('DELETE', `/api/admin/blocked-domains/${encodeURIComponent(domain)}`)

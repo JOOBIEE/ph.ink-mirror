@@ -34,6 +34,7 @@
           </button>
           <button id="tab-btn-links" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Links</button>
           <button id="tab-btn-accounts" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Accounts</button>
+                    <button id="tab-btn-domains" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Blocked domains</button>
           <button id="tab-btn-audit" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Audit log</button>
         </div>
       </nav>
@@ -236,6 +237,41 @@
               <ul id="acct-audit" class="space-y-2"></ul>
             </section>
           </div>
+        </section>
+
+                <!-- Blocked domains -->
+        <section id="tab-domains" aria-labelledby="domains-heading" class="space-y-4" hidden>
+          <h2 id="domains-heading" class="text-xl font-bold">Blocked domains</h2>
+          <p class="text-sm text-zinc-700">
+            Nobody can shorten a link to a blocked domain or any of its subdomains. Blocking a
+            domain also blocks every existing link to it straight away.
+          </p>
+          <form id="domains-form" class="flex flex-wrap items-end gap-3" novalidate>
+            <div>
+              <label for="domains-input" class="block text-sm font-semibold">Domain</label>
+              <input
+                id="domains-input"
+                type="text"
+                maxlength="253"
+                autocomplete="off"
+                autocapitalize="none"
+                spellcheck="false"
+                placeholder="evil.example"
+                class="field w-72 font-mono"
+              />
+            </div>
+            <div>
+              <label for="domains-reason" class="block text-sm font-semibold">Reason (optional)</label>
+              <input id="domains-reason" type="text" maxlength="300" autocomplete="off" class="field w-72" />
+            </div>
+            <button type="submit" class="btn-primary">Block domain</button>
+          </form>
+          <p class="text-xs text-zinc-700">
+            Enter only the domain, for example evil.example, without https:// or a path.
+          </p>
+          <ul id="domains-list" class="space-y-3"></ul>
+          <p id="domains-empty" class="text-sm text-zinc-700" hidden>No domains are blocked.</p>
+          <button id="domains-more" type="button" class="btn" hidden>Load more</button>
         </section>
 
         <!-- Audit log -->

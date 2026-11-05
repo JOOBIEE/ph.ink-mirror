@@ -30,6 +30,9 @@
             class="mt-1 w-full rounded-lg border border-zinc-400 px-3 py-2 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/30"
           />
         </div>
+
+        <div id="turnstile-box" class="min-h-[65px]"></div>
+
         <button
           id="submit"
           type="submit"
@@ -40,6 +43,10 @@
       </form>
 
       <p id="status" role="status" aria-live="polite" class="mt-4 text-sm"></p>
+
+      <p class="mt-8 text-xs text-zinc-700">
+        To block automated sign-ups, this page loads a security check from Cloudflare (Turnstile).
+      </p>
     </main>
 
     <script type="module" src="./src/login.ts"></script>

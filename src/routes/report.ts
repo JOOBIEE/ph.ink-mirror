@@ -5,6 +5,7 @@ import { readJsonObject } from '../lib/json-body'
 import { REPORTS_PER_DAY, REPORTS_PER_IP_PER_HOUR } from '../lib/limits'
 import { hit } from '../lib/ratelimit'
 import { parseReportedLink, validateReport } from '../lib/report'
+import { turnstileProblem, verifyTurnstile } from '../lib/turnstile'
 
 const THANKS = { ok: true, message: 'Thank you. We will review this report.' }
 
@@ -37,6 +38,14 @@ report.post('/', async (c) => {
   if (!check.ok) {
     return c.json({ error: check.error }, 400)
   }
+
+  const human = await verifyTurnstile(c.env, input.turnstileToken)
+  if (!human.ok) {
+    if (human.reason === 'misconfigured') console.error('Turnstile is not configured correctly')
+    const problem = turnstileProblem(human.reason)
+    return c.json({ error: problem.error }, problem.status)
+  }
+
   const parsed = parseReportedLink(check.report.link, c.env.APP_URL)
   if (!parsed.ok) {
     return c.json({ error: parsed.error }, 400)

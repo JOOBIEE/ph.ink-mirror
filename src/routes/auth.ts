@@ -9,6 +9,7 @@ import { hit } from '../lib/ratelimit'
 import { safeNext } from '../lib/redirect-target'
 import { endSession, getSessionUser, startSession } from '../lib/session'
 import { generateToken, hashToken, LOGIN_TOKEN_TTL_SECONDS } from '../lib/tokens'
+import { turnstileProblem, verifyTurnstile } from '../lib/turnstile'
 
 const MAX_LINKS_PER_EMAIL_PER_HOUR = 5
 const TOKEN_FORMAT = /^[0-9a-f]{64}$/
@@ -84,6 +85,14 @@ auth.post('/request', async (c) => {
 
   // Where to send the person after signing in. Anything not on our list is ignored.
   const next = typeof input.next === 'string' ? safeNext(input.next) : null
+
+  // The bot check comes BEFORE anything that spends the daily sign-in email budget.
+  const human = await verifyTurnstile(c.env, input.turnstileToken)
+  if (!human.ok) {
+    if (human.reason === 'misconfigured') console.error('Turnstile is not configured correctly')
+    const problem = turnstileProblem(human.reason)
+    return c.json({ error: problem.error }, problem.status)
+  }
 
   const baseUrl = c.env.APP_URL
   if (!baseUrl) {

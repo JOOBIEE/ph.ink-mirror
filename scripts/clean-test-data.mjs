@@ -14,6 +14,7 @@ const SUFFIXES = [
   'login-test.invalid',
   'abuse-test.invalid',
   'access-test.invalid',
+  'ts-test.invalid',
 ]
 const USER_FILTER = SUFFIXES.map((suffix) => `email LIKE '%@${suffix}'`).join(' OR ')
 const USERS = `(SELECT id FROM users WHERE ${USER_FILTER})`

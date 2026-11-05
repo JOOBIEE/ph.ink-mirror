@@ -90,6 +90,15 @@ DELETE FROM users WHERE email LIKE '%@${DOMAIN}';
 
 const sha256 = (text) => createHash('sha256').update(text).digest('hex')
 
+
+const DUMMY_TURNSTILE_TOKEN = 'XXXX.DUMMY.TOKEN.XXXX'
+
+function withTurnstile(path, body) {
+  return path === '/api/auth/request' || path === '/api/report'
+    ? { turnstileToken: DUMMY_TURNSTILE_TOKEN, ...body }
+    : body
+}
+
 const RUN_IP = `192.0.2.${10 + Math.floor(Math.random() * 200)}`
 const BASE_OCTET = 10 + Math.floor(Math.random() * 100)
 let ipCounter = 0
@@ -104,7 +113,7 @@ async function api(method, path, { token, body, headers } = {}) {
       'x-dev-ip': RUN_IP,
       ...headers,
     },
-    body: body ? JSON.stringify(body) : undefined,
+        body: body ? JSON.stringify(withTurnstile(path, body)) : undefined,
     redirect: 'manual',
   })
   let json = null
