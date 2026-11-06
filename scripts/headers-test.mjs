@@ -83,9 +83,9 @@ async function main() {
     const page = await get(path)
     check(`${path} is served (200)`, page.status === 200, `got ${page.status}`)
     check(`${path} has the security headers`, missingHeaders(page.headers) === '', missingHeaders(page.headers))
-    const policy = page.headers.get('content-security-policy-report-only')
+        const policy = page.headers.get('content-security-policy')
     check(
-      `${path} has a strict content policy (report-only for now)`,
+      `${path} has a strict enforced content policy`,
       badPolicy(policy, withTurnstile, path !== '/') === '',
       `${badPolicy(policy, withTurnstile, path !== '/')} | ${policy}`,
     )

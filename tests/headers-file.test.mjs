@@ -76,6 +76,16 @@ describe('the headers file', () => {
     expect(policyRules.map((rule) => rule.path).sort()).toEqual([...PAGES].sort())
   })
 
+    it('enforces the policies instead of only reporting', () => {
+    for (const rule of rules) {
+      expect(rule.headers['content-security-policy-report-only'], rule.path).toBeUndefined()
+    }
+    for (const path of PAGES) {
+      const rule = rules.find((item) => item.path === path)
+      expect(rule.headers['content-security-policy'], path).toHaveLength(1)
+    }
+  })
+
   it('never sets the same header twice for one address', () => {
     for (const path of [...PAGES, '/assets/app.js', '/assets/app.css']) {
       const seen = new Set()
