@@ -10,9 +10,12 @@ import report from './routes/report'
 import admin from './routes/admin'
 import config from './routes/config'
 import { originCheck } from './middleware/origin-check'
+import { securityHeaders } from './middleware/security-headers'
 import { runRollup } from './jobs/rollup'
 
 const app = new Hono<{ Bindings: Bindings }>()
+
+app.use('*', securityHeaders)
 
 app.get('/', (c) => c.text('ph.ink is alive'))
 app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /api/\n'))

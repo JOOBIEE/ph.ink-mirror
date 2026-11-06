@@ -15,8 +15,10 @@
     "test:admin": "node scripts/admin-test.mjs",
         "test:login": "node scripts/login-test.mjs",
             "test:blocklist": "node scripts/blocklist-test.mjs",
-                "test:clean": "node scripts/clean-test-data.mjs",
-    "test:all": "npm run test:clean && npm run test:access && npm run test:abuse && npm run test:admin && npm run test:blocklist && npm run test:login"
+               "test:clean": "node scripts/clean-test-data.mjs",
+        "test:turnstile": "node scripts/turnstile-test.mjs",
+            "test:headers": "node scripts/headers-test.mjs",
+        "test:all": "npm run test:clean && npm run test:access && npm run test:abuse && npm run test:admin && npm run test:blocklist && npm run test:login && npm run test:turnstile && npm run test:headers"
   },
   "dependencies": {
     "chart.js": "^4.6.1",
