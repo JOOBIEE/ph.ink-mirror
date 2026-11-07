@@ -143,13 +143,12 @@ describe('the page policies', () => {
     }
   })
 
-  it('lets every page except the home page run our own scripts', () => {
-    for (const path of PAGES.filter((item) => item !== '/')) {
+    it('lets every page run our own scripts', () => {
+    for (const path of PAGES) {
       expect(policyFor(path).get('script-src')).toContain("'self'")
     }
-    expect(policyFor('/').has('script-src')).toBe(false)
   })
-
+  
   it('lets only the sign-in and report pages use Cloudflare Turnstile', () => {
     for (const path of PAGES) {
       const policy = policyFor(path)
@@ -175,10 +174,9 @@ describe('the page policies', () => {
       }
     }
   })
-
-  it('lets the pages that call the API connect only to our own site', () => {
-    for (const path of PAGES.filter((item) => item !== '/')) {
+  it('lets every page connect only to our own site', () => {
+    for (const path of PAGES) {
       expect(policyFor(path).get('connect-src')).toEqual(["'self'"])
     }
   })
-})
+  })

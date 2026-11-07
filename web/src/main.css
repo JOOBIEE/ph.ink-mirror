@@ -1,14 +1,485 @@
 @import "tailwindcss";
 @source "../";
 
-@layer components {
-  .field {
-    @apply w-full rounded-lg border border-zinc-400 px-3 py-2 focus:border-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/30;
+/*
+  phub.ink design system, "letterpress": paper and ink, hard shadows, a marker-yellow hover.
+
+  HOW THE THEMING WORKS
+  - Every colour is a CSS variable with a light and a dark value (below).
+  - The Tailwind palettes the code already uses (zinc, red, green, amber, white) are pointed at
+    those variables in @theme, so existing class names such as text-zinc-700 or bg-red-100 follow
+    the theme automatically, including in elements the page scripts build.
+  - Rules at the very bottom are deliberately outside any @layer. Unlayered rules beat Tailwind
+    utilities, which is how the shared hover and focus looks reach every button.
+*/
+
+:root {
+  color-scheme: light;
+  --paper: #f5f1e8;
+  --surface: #fffdf7;
+  --ink: #131211;
+  --hi: #ffd60a;
+  --on-hi: #131211;
+  --shadow: #131211;
+  --dots: rgba(19, 18, 17, 0.14);
+
+  --z-50: #faf7ef;
+  --z-100: #efebe0;
+  --z-200: #e0dbce;
+  --z-300: #3a3631;
+  --z-400: #131211;
+  --z-500: #6f6a61;
+  --z-600: #55504a;
+  --z-700: #3f3b36;
+  --z-800: #26231f;
+  --z-900: #131211;
+  --z-950: #0a0a09;
+
+  --g-100: #dcebd6;
+  --g-800: #1f5a2a;
+  --g-900: #163f1e;
+  --r-50: #fbe7e4;
+  --r-100: #f6d2cd;
+  --r-700: #b3261e;
+  --r-800: #8f1d17;
+  --r-900: #6a1510;
+  --a-100: #fbe9b8;
+  --a-200: #f6d97e;
+  --a-900: #5c4300;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0d0c0b;
+  --surface: #171614;
+  --ink: #f3efe5;
+  --hi: #ffd60a;
+  --on-hi: #131211;
+  --shadow: #77726a;
+  --dots: rgba(243, 239, 229, 0.12);
+
+  --z-50: #14130f;
+  --z-100: #1d1b18;
+  --z-200: #2a2723;
+  --z-300: #8c867a;
+  --z-400: #d8d2c4;
+  --z-500: #9a9487;
+  --z-600: #b3ad9f;
+  --z-700: #cfc9bb;
+  --z-800: #e4dfd2;
+  --z-900: #f3efe5;
+  --z-950: #faf7ef;
+
+  --g-100: #1c3a22;
+  --g-800: #8fd49c;
+  --g-900: #bfe9c7;
+  --r-50: #3a1714;
+  --r-100: #4a1d19;
+  --r-700: #ff8f85;
+  --r-800: #ffaaa2;
+  --r-900: #ffd0cb;
+  --a-100: #3d3010;
+  --a-200: #4e3d12;
+  --a-900: #ffe08a;
+}
+
+@theme inline {
+  --font-display: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", Menlo, Consolas, "Liberation Mono", monospace;
+
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-hi: var(--hi);
+  --color-white: var(--surface);
+
+  --color-zinc-50: var(--z-50);
+  --color-zinc-100: var(--z-100);
+  --color-zinc-200: var(--z-200);
+  --color-zinc-300: var(--z-300);
+  --color-zinc-400: var(--z-400);
+  --color-zinc-500: var(--z-500);
+  --color-zinc-600: var(--z-600);
+  --color-zinc-700: var(--z-700);
+  --color-zinc-800: var(--z-800);
+  --color-zinc-900: var(--z-900);
+  --color-zinc-950: var(--z-950);
+
+  --color-green-100: var(--g-100);
+  --color-green-800: var(--g-800);
+  --color-green-900: var(--g-900);
+  --color-red-50: var(--r-50);
+  --color-red-100: var(--r-100);
+  --color-red-700: var(--r-700);
+  --color-red-800: var(--r-800);
+  --color-red-900: var(--r-900);
+  --color-amber-100: var(--a-100);
+  --color-amber-200: var(--a-200);
+  --color-amber-900: var(--a-900);
+}
+
+@layer base {
+  html {
+    background-color: var(--paper);
+    color: var(--ink);
+    accent-color: var(--ink);
+    scrollbar-color: var(--ink) var(--paper);
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
   }
-  .btn {
-    @apply rounded-lg border border-zinc-400 px-3 py-2 text-sm font-semibold text-zinc-900 hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-zinc-900/30 disabled:opacity-60;
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    background-color: var(--paper);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    line-height: 1.55;
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    line-height: 1.08;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+  p { text-wrap: pretty; }
+  [id] { scroll-margin-top: 6rem; }
+  ::selection { background-color: var(--hi); color: var(--on-hi); }
+  input, select, textarea, button { font: inherit; }
+}
+
+@layer components {
+  .wrap {
+    width: 100%;
+    max-width: 72rem;
+    margin-inline: auto;
+    padding-inline: 1rem;
+  }
+  @media (min-width: 640px) {
+    .wrap { padding-inline: 1.5rem; }
+  }
+
+  .skip {
+    position: absolute;
+    left: -999px;
+    top: 0.5rem;
+    z-index: 60;
+    padding: 0.6rem 1rem;
+    background: var(--hi);
+    color: var(--on-hi);
+    font-family: var(--font-mono);
+    border: 2px solid var(--ink);
+  }
+  .skip:focus { left: 0.5rem; }
+
+  .site-header {
+    background-color: var(--paper);
+    border-bottom: 2px solid var(--ink);
+  }
+  @media (min-width: 768px) {
+    .site-header { position: sticky; top: 0; z-index: 30; }
+  }
+
+  .brand {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .brand span {
+    background: var(--hi);
+    color: var(--on-hi);
+    padding: 0 0.18em;
+    margin-left: 0.04em;
+    border-radius: 2px;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.5rem;
+    padding: 0.4rem 0.8rem;
+    border: 2px solid transparent;
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    white-space: nowrap;
+    text-decoration: none;
+    color: var(--ink);
+    background: transparent;
+    cursor: pointer;
+  }
+  .nav-link[aria-current="page"] {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+
+  .theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .theme-toggle .icon-sun { display: none; }
+  :root[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+  :root[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+
+  .btn,
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+    padding: 0.55rem 1.1rem;
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.1;
+    text-align: center;
+    text-decoration: none;
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
   }
   .btn-primary {
-    @apply rounded-lg bg-zinc-900 px-4 py-2.5 font-semibold text-white hover:bg-zinc-700 focus:outline-none focus:ring-2 focus:ring-zinc-900/40 disabled:opacity-60;
+    background: var(--ink);
+    color: var(--paper);
+  }
+  .btn-sm {
+    min-height: 2.5rem;
+    padding: 0.4rem 0.9rem;
+    font-size: 0.8125rem;
+  }
+  .btn:disabled,
+  .btn-primary:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .field {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.8rem;
+    background: var(--surface);
+    color: var(--ink);
+    border: 2px solid var(--ink);
+    border-radius: 4px;
+  }
+  .field:focus { box-shadow: 4px 4px 0 0 var(--hi); }
+  textarea.field { min-height: 6rem; }
+  .field::placeholder { color: var(--z-500); }
+
+  .label {
+    display: block;
+    margin-bottom: 0.35rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .hint {
+    margin-top: 0.35rem;
+    font-size: 0.8125rem;
+    color: var(--z-600);
+  }
+  .kicker {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 1.1rem;
+    box-shadow: 3px 3px 0 0 var(--shadow);
+  }
+  @media (min-width: 640px) {
+    .card { padding: 1.5rem; box-shadow: 5px 5px 0 0 var(--shadow); }
+  }
+  .card-flat {
+    background: var(--surface);
+    border: 1px solid var(--z-300);
+    border-radius: 6px;
+    padding: 1rem;
+  }
+
+  .stat {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 0.8rem 1rem;
+  }
+  .stat dt {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--z-600);
+  }
+  .stat dd {
+    margin-top: 0.25rem;
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .marker {
+    background: var(--hi);
+    color: var(--on-hi);
+    padding: 0 0.15em;
+    border-radius: 2px;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+
+  .paper-grid {
+    background-image: radial-gradient(var(--dots) 1px, transparent 1px);
+    background-size: 18px 18px;
+  }
+
+  .ticket {
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    box-shadow: 8px 8px 0 0 var(--hi), 8px 8px 0 2px var(--ink);
+  }
+
+  .qr-stage {
+    background: #ffffff;
+    color: #000000;
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 0.75rem;
+  }
+
+  .chart {
+    position: relative;
+    height: 16rem;
+    background: var(--surface);
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    padding: 0.75rem;
+  }
+
+  .faq details { border-bottom: 2px solid var(--ink); }
+  .faq summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 0.25rem;
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .faq summary::-webkit-details-marker { display: none; }
+  .faq summary::after { content: "+"; font-family: var(--font-mono); }
+  .faq details[open] summary::after { content: "\2013"; }
+  .faq .answer { padding: 0 0.25rem 1.1rem; color: var(--z-700); max-width: 42rem; }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: none; }
+  }
+  .rise { animation: rise 0.5s ease both; }
+  .rise-2 { animation: rise 0.5s 0.12s ease both; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Unlayered rules (these win over Tailwind utilities) ---------- */
+
+:focus-visible {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
+
+/* Shape language for everything, including elements the page scripts build. */
+.rounded-lg, .rounded-xl, .rounded-2xl { border-radius: 4px; }
+:is(li, div, section, details).rounded-xl.border { background-color: var(--surface); }
+
+/* Ink buttons: hard shadow that "presses in". Covers .btn, .btn-primary and script-built buttons. */
+:is(.btn, .btn-primary, button[class*="border-zinc-400"], a[class*="border-zinc-400"]):not(:disabled) {
+  box-shadow: 3px 3px 0 0 var(--shadow);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.08s ease;
+}
+:is(.btn, .btn-primary, button[class*="border-zinc-400"], a[class*="border-zinc-400"]):not(:disabled):hover {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 0 var(--shadow);
+}
+:is(.btn, .btn-primary, button[class*="border-zinc-400"], a[class*="border-zinc-400"]):not(:disabled):active {
+  transform: translate(3px, 3px);
+  box-shadow: 0 0 0 0 var(--shadow);
+}
+:is(button, a)[class*="border-zinc-400"]:not(.btn):not(.btn-primary) {
+  font-family: var(--font-mono);
+  border-width: 2px;
+  border-color: var(--ink);
+  background-color: var(--surface);
+  min-height: 2.5rem;
+}
+@media (pointer: coarse) {
+  :is(button, a)[class*="border-zinc-400"]:not(.btn):not(.btn-primary) { min-height: 2.75rem; }
+}
+
+/* The marker-yellow hover. Danger buttons (red) keep their own hover. */
+:is(button, a.btn, a.btn-primary, a.nav-link, summary):not(:disabled):not([aria-current="page"]):not([class*="red-700"]):hover {
+  background-color: var(--hi);
+  color: var(--on-hi);
+}
+
+a.hl {
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  color: inherit;
+}
+a.hl:hover {
+  background-color: var(--hi);
+  color: var(--on-hi);
+  text-decoration-color: transparent;
+}
+
+dialog {
+  background-color: var(--surface);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 6px;
+  box-shadow: 8px 8px 0 0 var(--hi), 8px 8px 0 2px var(--ink);
+  max-width: calc(100vw - 2rem);
+}
+dialog::backdrop { background-color: rgba(0, 0, 0, 0.6); }
+
+/* Charts are drawn on a canvas with fixed dark colours, so invert them in dark mode. */
+:root[data-theme="dark"] .chart canvas { filter: invert(1); }

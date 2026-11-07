@@ -86,8 +86,8 @@ async function main() {
         const policy = page.headers.get('content-security-policy')
     check(
       `${path} has a strict enforced content policy`,
-      badPolicy(policy, withTurnstile, path !== '/') === '',
-      `${badPolicy(policy, withTurnstile, path !== '/')} | ${policy}`,
+      badPolicy(policy, withTurnstile, true) === '',
+      `${badPolicy(policy, withTurnstile, true)} | ${policy}`,
     )
     if (path === '/login') {
       stylesheet = /href="(\/assets\/[^"]+\.css)"/.exec(page.text)?.[1] ?? null

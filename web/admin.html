@@ -2,103 +2,98 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f1e8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0c0b" media="(prefers-color-scheme: dark)" />
     <meta name="robots" content="noindex, nofollow" />
-    <title>ph.ink</title>
+    <title>phub.ink</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <script src="/theme-init.js"></script>
     <link rel="stylesheet" href="./src/main.css" />
   </head>
-  <body class="min-h-screen bg-white text-zinc-900">
-    <main id="gate" class="mx-auto max-w-xl px-4 py-24 text-center">
-      <h1 id="gate-title" class="text-2xl font-bold">Loading...</h1>
-      <p id="gate-text" class="mt-2 text-sm text-zinc-700"></p>
+  <body class="min-h-dvh">
+    <main id="gate" class="wrap max-w-xl py-24 text-center">
+      <h1 id="gate-title" class="text-4xl font-extrabold">Loading...</h1>
+      <p id="gate-text" class="mt-3 text-zinc-700"></p>
     </main>
 
     <div id="app" hidden>
-      <header class="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-5">
-        <div class="flex flex-wrap items-center gap-3">
-          <span class="text-lg font-bold">ph.ink admin</span>
-          <span id="admin-email" class="break-all text-sm text-zinc-700"></span>
+      <header class="site-header">
+        <div class="wrap flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-3">
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <a href="/" class="brand">phub<span>.ink</span></a>
+            <span class="kicker marker">Admin</span>
+            <span id="admin-email" class="hidden break-all font-mono text-xs text-zinc-600 md:inline"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <a href="/dashboard" class="btn btn-sm">My dashboard</a>
+            <button id="sign-out" type="button" class="btn btn-sm">Sign out</button>
+            <button type="button" class="theme-toggle" data-theme-toggle aria-label="Dark mode" aria-pressed="false">
+              <svg class="icon-moon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
+              <svg class="icon-sun" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
+            </button>
+          </div>
         </div>
-        <div class="flex gap-2">
-          <a href="/dashboard" class="btn">My dashboard</a>
-          <button id="sign-out" type="button" class="btn">Sign out</button>
-        </div>
+        <nav aria-label="Admin sections" class="wrap flex gap-1 overflow-x-auto pb-3">
+          <button id="tab-btn-overview" type="button" class="nav-link">Overview</button>
+          <button id="tab-btn-reports" type="button" class="nav-link">Reports <span id="reports-badge" class="ml-1 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900" hidden></span></button>
+          <button id="tab-btn-links" type="button" class="nav-link">Links</button>
+          <button id="tab-btn-accounts" type="button" class="nav-link">Accounts</button>
+          <button id="tab-btn-domains" type="button" class="nav-link">Blocked domains</button>
+          <button id="tab-btn-audit" type="button" class="nav-link">Audit log</button>
+        </nav>
       </header>
 
-      <nav aria-label="Admin sections" class="mx-auto max-w-6xl px-4">
-        <div class="flex flex-wrap gap-2 border-b border-zinc-200 pb-3">
-          <button id="tab-btn-overview" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Overview</button>
-          <button id="tab-btn-reports" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">
-            Reports
-            <span id="reports-badge" class="ml-1 rounded-full bg-amber-200 px-2 py-0.5 text-xs font-semibold text-amber-900" hidden></span>
-          </button>
-          <button id="tab-btn-links" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Links</button>
-          <button id="tab-btn-accounts" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Accounts</button>
-                    <button id="tab-btn-domains" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Blocked domains</button>
-          <button id="tab-btn-audit" type="button" class="rounded-lg px-3 py-2 text-sm font-semibold">Audit log</button>
-        </div>
-      </nav>
-
-      <main class="mx-auto max-w-6xl space-y-6 px-4 py-6 pb-16">
+      <main class="wrap space-y-6 py-8 pb-16">
         <p id="status" role="status" aria-live="polite" class="text-sm"></p>
 
-        <!-- Overview -->
         <section id="tab-overview" aria-labelledby="overview-heading" class="space-y-6">
-          <h1 id="overview-heading" class="text-2xl font-bold">Overview</h1>
+          <h1 id="overview-heading" class="text-4xl font-extrabold">Overview</h1>
           <div id="overview-stats" class="grid grid-cols-2 gap-3 sm:grid-cols-4"></div>
 
-          <section aria-labelledby="system-heading" class="rounded-xl border border-zinc-300 p-5">
-            <h2 id="system-heading" class="text-lg font-bold">Link creation</h2>
+          <section aria-labelledby="system-heading" class="card">
+            <h2 id="system-heading" class="text-2xl font-bold">Link creation</h2>
             <p id="kill-state" class="mt-2 text-sm"></p>
-            <p class="mt-1 text-sm text-zinc-700">
-              The kill switch stops new links and destination edits. Existing links keep working.
-            </p>
-            <button id="kill-toggle" type="button" class="btn mt-3"></button>
+            <p class="mt-1 text-sm text-zinc-700">The kill switch stops new links and destination edits. Existing links keep working.</p>
+            <button id="kill-toggle" type="button" class="btn mt-4"></button>
           </section>
 
-          <section aria-labelledby="budget-heading" class="rounded-xl border border-zinc-300 p-5">
-            <h2 id="budget-heading" class="text-lg font-bold">Sign-in emails today</h2>
+          <section aria-labelledby="budget-heading" class="card">
+            <h2 id="budget-heading" class="text-2xl font-bold">Sign-in emails today</h2>
             <p id="signin-budget" class="mt-2 text-sm"></p>
-            <p class="mt-1 text-sm text-zinc-700">
-              When the daily limit is reached, no more sign-in emails are sent until tomorrow (UTC).
-            </p>
+            <p class="mt-1 text-sm text-zinc-700">When the daily limit is reached, no more sign-in emails are sent until tomorrow (UTC).</p>
           </section>
         </section>
 
-        <!-- Reports -->
         <section id="tab-reports" aria-labelledby="reports-heading" class="space-y-4" hidden>
-          <h2 id="reports-heading" class="text-xl font-bold">Reports</h2>
-          <p class="text-sm text-zinc-700">
-            Destinations are shown as text on purpose. Do not open a link you do not trust.
-          </p>
-          <div>
-            <label for="reports-filter" class="block text-sm font-semibold">Show</label>
-            <select id="reports-filter" class="field w-56">
+          <h2 id="reports-heading" class="text-3xl font-extrabold">Reports</h2>
+          <p class="text-sm text-zinc-700">Destinations are shown as text on purpose. Do not open a link you do not trust.</p>
+          <div class="max-w-xs">
+            <label for="reports-filter" class="label">Show</label>
+            <select id="reports-filter" class="field">
               <option value="open" selected>Open reports</option>
               <option value="actioned">Actioned</option>
               <option value="dismissed">Dismissed</option>
               <option value="">All reports</option>
             </select>
           </div>
-          <ul id="reports-list" class="space-y-3"></ul>
+          <ul id="reports-list" class="space-y-4"></ul>
           <p id="reports-empty" class="text-sm text-zinc-700" hidden>Nothing here.</p>
           <button id="reports-more" type="button" class="btn" hidden>Load more</button>
         </section>
 
-        <!-- Links -->
         <section id="tab-links" aria-labelledby="links-heading" class="space-y-4" hidden>
-          <h2 id="links-heading" class="text-xl font-bold">All links</h2>
-          <p class="text-sm text-zinc-700">
-            Destinations are shown as text on purpose. Do not open a link you do not trust.
-          </p>
-          <form id="links-filters" class="flex flex-wrap items-end gap-3">
+          <h2 id="links-heading" class="text-3xl font-extrabold">All links</h2>
+          <p class="text-sm text-zinc-700">Destinations are shown as text on purpose. Do not open a link you do not trust.</p>
+          <form id="links-filters" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto] sm:items-end">
             <div>
-              <label for="links-q" class="block text-sm font-semibold">Search</label>
-              <input id="links-q" type="search" maxlength="100" autocomplete="off" placeholder="Slug, destination, name or owner" class="field w-72" />
+              <label for="links-q" class="label">Search</label>
+              <input id="links-q" type="search" maxlength="100" autocomplete="off" placeholder="Slug, destination, name or owner" class="field" />
             </div>
             <div>
-              <label for="links-status" class="block text-sm font-semibold">Status</label>
-              <select id="links-status" class="field w-40">
+              <label for="links-status" class="label">Status</label>
+              <select id="links-status" class="field">
                 <option value="">All</option>
                 <option value="active">Active</option>
                 <option value="disabled">Paused</option>
@@ -108,37 +103,33 @@
             </div>
             <button type="submit" class="btn">Search</button>
           </form>
-          <ul id="links-list" class="space-y-3"></ul>
+          <ul id="links-list" class="space-y-4"></ul>
           <p id="links-empty" class="text-sm text-zinc-700" hidden>No links match.</p>
           <button id="links-more" type="button" class="btn" hidden>Load more</button>
         </section>
 
-        <!-- Accounts -->
         <section id="tab-accounts" aria-labelledby="accounts-heading" hidden>
           <div id="accounts-list-view" class="space-y-4">
-            <h2 id="accounts-heading" class="text-xl font-bold">Accounts</h2>
+            <h2 id="accounts-heading" class="text-3xl font-extrabold">Accounts</h2>
             <p class="text-sm text-zinc-700">Accounts with open reports are listed first.</p>
-            <form id="accounts-filters" class="flex flex-wrap items-end gap-3">
+            <form id="accounts-filters" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_12rem_auto_auto] sm:items-end">
               <div>
-                <label for="accounts-q" class="block text-sm font-semibold">Search by email</label>
-                <input id="accounts-q" type="search" maxlength="100" autocomplete="off" class="field w-72" />
+                <label for="accounts-q" class="label">Search by email</label>
+                <input id="accounts-q" type="search" maxlength="100" autocomplete="off" class="field" />
               </div>
               <div>
-                <label for="accounts-status" class="block text-sm font-semibold">Status</label>
-                <select id="accounts-status" class="field w-40">
+                <label for="accounts-status" class="label">Status</label>
+                <select id="accounts-status" class="field">
                   <option value="">All</option>
                   <option value="active">Active</option>
                   <option value="banned">Banned</option>
                   <option value="deleted">Deleted</option>
                 </select>
               </div>
-              <label class="flex items-center gap-2 pb-2 text-sm">
-                <input id="accounts-reported" type="checkbox" class="h-4 w-4" />
-                Reported accounts only
-              </label>
+              <label class="flex min-h-11 items-center gap-2 text-sm"><input id="accounts-reported" type="checkbox" class="h-5 w-5" /> Reported accounts only</label>
               <button type="submit" class="btn">Search</button>
             </form>
-            <ul id="accounts-list" class="space-y-3"></ul>
+            <ul id="accounts-list" class="space-y-4"></ul>
             <p id="accounts-empty" class="text-sm text-zinc-700" hidden>No accounts match.</p>
             <button id="accounts-more" type="button" class="btn" hidden>Load more</button>
           </div>
@@ -146,143 +137,91 @@
           <div id="account-detail" class="space-y-8" hidden>
             <button id="account-back" type="button" class="btn">Back to accounts</button>
 
-            <div class="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h2 id="acct-email" class="break-all text-xl font-bold"></h2>
+            <div class="flex flex-wrap items-start justify-between gap-4">
+              <div class="min-w-0">
+                <h2 id="acct-email" class="break-all text-3xl font-extrabold"></h2>
                 <p id="acct-meta" class="mt-1 text-sm text-zinc-700"></p>
               </div>
               <div id="acct-actions" class="flex flex-wrap gap-2"></div>
             </div>
 
             <section aria-labelledby="acct-analytics-heading" class="space-y-4">
-              <h3 id="acct-analytics-heading" class="text-lg font-bold">Analytics</h3>
-              <div class="flex flex-wrap items-end gap-4">
+              <h3 id="acct-analytics-heading" class="text-2xl font-bold">Analytics</h3>
+              <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+                <div><label for="acct-link" class="label">Link</label><select id="acct-link" class="field"></select></div>
                 <div>
-                  <label for="acct-link" class="block text-sm font-semibold">Link</label>
-                  <select id="acct-link" class="field w-64"></select>
-                </div>
-                <div>
-                  <label for="acct-days" class="block text-sm font-semibold">Period</label>
-                  <select id="acct-days" class="field w-44">
+                  <label for="acct-days" class="label">Period</label>
+                  <select id="acct-days" class="field">
                     <option value="7">Last 7 days</option>
                     <option value="30" selected>Last 30 days</option>
                     <option value="90">Last 90 days</option>
                     <option value="365">Last 365 days</option>
                   </select>
                 </div>
-                <label class="flex items-center gap-2 pb-2 text-sm">
-                  <input id="acct-bots" type="checkbox" class="h-4 w-4" />
-                  Include bots and link previews
-                </label>
+                <label class="flex min-h-11 items-center gap-2 text-sm"><input id="acct-bots" type="checkbox" class="h-5 w-5" /> Include bots and link previews</label>
               </div>
 
               <dl class="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div class="rounded-xl border border-zinc-300 p-4">
-                  <dt class="text-xs font-semibold text-zinc-700">Clicks</dt>
-                  <dd id="acct-stat-clicks" class="mt-1 text-2xl font-extrabold">0</dd>
-                </div>
-                <div class="rounded-xl border border-zinc-300 p-4">
-                  <dt class="text-xs font-semibold text-zinc-700">Visitors</dt>
-                  <dd id="acct-stat-visitors" class="mt-1 text-2xl font-extrabold">0</dd>
-                </div>
-                <div class="rounded-xl border border-zinc-300 p-4">
-                  <dt class="text-xs font-semibold text-zinc-700">QR scans</dt>
-                  <dd id="acct-stat-qr" class="mt-1 text-2xl font-extrabold">0</dd>
-                </div>
-                <div class="rounded-xl border border-zinc-300 p-4">
-                  <dt class="text-xs font-semibold text-zinc-700">Bot clicks</dt>
-                  <dd id="acct-stat-bots" class="mt-1 text-2xl font-extrabold">0</dd>
-                </div>
+                <div class="stat"><dt>Clicks</dt><dd id="acct-stat-clicks">0</dd></div>
+                <div class="stat"><dt>Visitors</dt><dd id="acct-stat-visitors">0</dd></div>
+                <div class="stat"><dt>QR scans</dt><dd id="acct-stat-qr">0</dd></div>
+                <div class="stat"><dt>Bot clicks</dt><dd id="acct-stat-bots">0</dd></div>
               </dl>
 
-              <div class="relative h-64 rounded-xl border border-zinc-300 p-3">
-                <canvas id="acct-chart" role="img" aria-label="Clicks per day"></canvas>
-              </div>
+              <div class="chart"><canvas id="acct-chart" role="img" aria-label="Clicks per day"></canvas></div>
 
               <div class="grid gap-4 sm:grid-cols-2">
-                <section aria-labelledby="acct-countries-heading" class="rounded-xl border border-zinc-300 p-4">
-                  <h4 id="acct-countries-heading" class="font-bold">Countries</h4>
-                  <ul id="acct-countries" class="mt-3 space-y-3"></ul>
-                </section>
-                <section aria-labelledby="acct-devices-heading" class="rounded-xl border border-zinc-300 p-4">
-                  <h4 id="acct-devices-heading" class="font-bold">Devices</h4>
-                  <ul id="acct-devices" class="mt-3 space-y-3"></ul>
-                </section>
-                <section aria-labelledby="acct-browsers-heading" class="rounded-xl border border-zinc-300 p-4">
-                  <h4 id="acct-browsers-heading" class="font-bold">Browsers</h4>
-                  <ul id="acct-browsers" class="mt-3 space-y-3"></ul>
-                </section>
-                <section aria-labelledby="acct-referrers-heading" class="rounded-xl border border-zinc-300 p-4">
-                  <h4 id="acct-referrers-heading" class="font-bold">Where visitors came from</h4>
-                  <ul id="acct-referrers" class="mt-3 space-y-3"></ul>
-                </section>
+                <section aria-labelledby="acct-countries-heading" class="card-flat"><h4 id="acct-countries-heading" class="font-bold">Countries</h4><ul id="acct-countries" class="mt-3 space-y-3"></ul></section>
+                <section aria-labelledby="acct-devices-heading" class="card-flat"><h4 id="acct-devices-heading" class="font-bold">Devices</h4><ul id="acct-devices" class="mt-3 space-y-3"></ul></section>
+                <section aria-labelledby="acct-browsers-heading" class="card-flat"><h4 id="acct-browsers-heading" class="font-bold">Browsers</h4><ul id="acct-browsers" class="mt-3 space-y-3"></ul></section>
+                <section aria-labelledby="acct-referrers-heading" class="card-flat"><h4 id="acct-referrers-heading" class="font-bold">Where visitors came from</h4><ul id="acct-referrers" class="mt-3 space-y-3"></ul></section>
               </div>
-              <p class="text-xs text-zinc-700">
-                Days are in UTC. This is exactly what the account owner sees on their own dashboard.
-              </p>
+              <p class="hint">Days are in UTC. This is exactly what the account owner sees on their own dashboard.</p>
             </section>
 
             <section aria-labelledby="acct-links-heading" class="space-y-3">
-              <h3 id="acct-links-heading" class="text-lg font-bold">Links</h3>
-              <ul id="acct-links" class="space-y-3"></ul>
+              <h3 id="acct-links-heading" class="text-2xl font-bold">Links</h3>
+              <ul id="acct-links" class="space-y-4"></ul>
             </section>
 
             <section aria-labelledby="acct-reports-heading" class="space-y-3">
-              <h3 id="acct-reports-heading" class="text-lg font-bold">Reports about this account's links</h3>
-              <ul id="acct-reports" class="space-y-3"></ul>
+              <h3 id="acct-reports-heading" class="text-2xl font-bold">Reports about this account's links</h3>
+              <ul id="acct-reports" class="space-y-4"></ul>
             </section>
 
             <section aria-labelledby="acct-audit-heading" class="space-y-3">
-              <h3 id="acct-audit-heading" class="text-lg font-bold">Admin actions on this account</h3>
+              <h3 id="acct-audit-heading" class="text-2xl font-bold">Admin actions on this account</h3>
               <ul id="acct-audit" class="space-y-2"></ul>
             </section>
           </div>
         </section>
 
-                <!-- Blocked domains -->
         <section id="tab-domains" aria-labelledby="domains-heading" class="space-y-4" hidden>
-          <h2 id="domains-heading" class="text-xl font-bold">Blocked domains</h2>
-          <p class="text-sm text-zinc-700">
-            Nobody can shorten a link to a blocked domain or any of its subdomains. Blocking a
-            domain also blocks every existing link to it straight away.
-          </p>
-          <form id="domains-form" class="flex flex-wrap items-end gap-3" novalidate>
+          <h2 id="domains-heading" class="text-3xl font-extrabold">Blocked domains</h2>
+          <p class="text-sm text-zinc-700">Nobody can shorten a link to a blocked domain or any of its subdomains. Blocking a domain also blocks every existing link to it straight away.</p>
+          <form id="domains-form" class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end" novalidate>
             <div>
-              <label for="domains-input" class="block text-sm font-semibold">Domain</label>
-              <input
-                id="domains-input"
-                type="text"
-                maxlength="253"
-                autocomplete="off"
-                autocapitalize="none"
-                spellcheck="false"
-                placeholder="evil.example"
-                class="field w-72 font-mono"
-              />
+              <label for="domains-input" class="label">Domain</label>
+              <input id="domains-input" type="text" maxlength="253" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="evil.example" class="field font-mono" />
             </div>
             <div>
-              <label for="domains-reason" class="block text-sm font-semibold">Reason (optional)</label>
-              <input id="domains-reason" type="text" maxlength="300" autocomplete="off" class="field w-72" />
+              <label for="domains-reason" class="label">Reason (optional)</label>
+              <input id="domains-reason" type="text" maxlength="300" autocomplete="off" class="field" />
             </div>
             <button type="submit" class="btn-primary">Block domain</button>
           </form>
-          <p class="text-xs text-zinc-700">
-            Enter only the domain, for example evil.example, without https:// or a path.
-          </p>
-          <ul id="domains-list" class="space-y-3"></ul>
+          <p class="hint">Enter only the domain, for example evil.example, without https:// or a path.</p>
+          <ul id="domains-list" class="space-y-4"></ul>
           <p id="domains-empty" class="text-sm text-zinc-700" hidden>No domains are blocked.</p>
           <button id="domains-more" type="button" class="btn" hidden>Load more</button>
         </section>
 
-        <!-- Audit log -->
         <section id="tab-audit" aria-labelledby="audit-heading" class="space-y-4" hidden>
-          <h2 id="audit-heading" class="text-xl font-bold">Audit log</h2>
-          <p class="text-sm text-zinc-700">
-            Every admin action is recorded here, including opening an account page. Entries cannot be edited or deleted.
-          </p>
-          <div>
-            <label for="audit-filter" class="block text-sm font-semibold">Show</label>
-            <select id="audit-filter" class="field w-56">
+          <h2 id="audit-heading" class="text-3xl font-extrabold">Audit log</h2>
+          <p class="text-sm text-zinc-700">Every admin action is recorded here, including opening an account page. Entries cannot be edited or deleted.</p>
+          <div class="max-w-xs">
+            <label for="audit-filter" class="label">Show</label>
+            <select id="audit-filter" class="field">
               <option value="">Everything</option>
               <option value="link">Link actions</option>
               <option value="user">Account actions</option>
@@ -297,22 +236,16 @@
       </main>
     </div>
 
-    <dialog
-      id="action-dialog"
-      class="m-auto w-full max-w-md rounded-xl border border-zinc-300 p-0 backdrop:bg-black/40"
-      aria-labelledby="action-title"
-    >
+    <dialog id="action-dialog" class="m-auto w-full max-w-md p-0" aria-labelledby="action-title">
       <form id="action-form" method="dialog" class="space-y-4 p-5">
-        <h2 id="action-title" class="text-lg font-bold"></h2>
+        <h2 id="action-title" class="text-2xl font-bold"></h2>
         <p id="action-message" class="text-sm text-zinc-700"></p>
         <div id="action-reason-wrap">
-          <label for="action-reason" class="block text-sm font-semibold">
-            Reason (optional, saved in the audit log)
-          </label>
+          <label for="action-reason" class="label">Reason (optional, saved in the audit log)</label>
           <textarea id="action-reason" rows="3" maxlength="300" class="field"></textarea>
         </div>
         <label id="action-domain-wrap" class="flex items-start gap-2 text-sm">
-          <input id="action-domain" type="checkbox" class="mt-1 h-4 w-4" />
+          <input id="action-domain" type="checkbox" class="mt-0.5 h-5 w-5 shrink-0" />
           Also block this link's domain, so nobody can shorten links to it
         </label>
         <div class="flex justify-end gap-2">
@@ -322,6 +255,7 @@
       </form>
     </dialog>
 
+    <script type="module" src="./src/theme.ts"></script>
     <script type="module" src="./src/admin.ts"></script>
   </body>
 </html>
