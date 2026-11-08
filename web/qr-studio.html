@@ -7,7 +7,7 @@
     <meta name="theme-color" content="#f5f1e8" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0d0c0b" media="(prefers-color-scheme: dark)" />
     <title>QR code studio · phub.ink</title>
-    <meta name="description" content="Make styled QR codes for free. Trackable short-link codes, or static codes for links, text, Wi-Fi and email." />
+    <meta name="description" content="Make styled QR codes for free: trackable short links, or plain codes for links, text, Wi-Fi and email." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <script src="/theme-init.js"></script>
     <link rel="stylesheet" href="./src/main.css" />
@@ -37,57 +37,117 @@
     <main id="main" class="wrap flex-1 py-8 sm:py-12">
       <p class="kicker">Free tool</p>
       <h1 class="mt-1 text-4xl font-extrabold sm:text-5xl">QR code studio</h1>
-      <p class="mt-3 max-w-2xl text-zinc-700">Make a QR code and style it. Static codes are made in your browser and nothing is sent to us.</p>
+      <p class="mt-3 max-w-2xl text-zinc-700">
+        Make a QR code for a link, text, Wi-Fi or email. Everything except a tracked link is made in
+        your browser, and nothing is sent to us.
+      </p>
 
       <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
         <div class="min-w-0 space-y-8">
-          <fieldset class="card space-y-3">
-            <legend class="kicker marker mx-1">1 &middot; Type of code</legend>
-            <label class="flex cursor-pointer items-start gap-3 p-1">
-              <input type="radio" name="mode" value="dynamic" class="mt-1 h-5 w-5" checked />
-              <span><strong>Trackable short link.</strong> Scans are counted, and you can change where the code goes later without reprinting it. Needs a free account.</span>
-            </label>
-            <label class="flex cursor-pointer items-start gap-3 p-1">
-              <input type="radio" name="mode" value="static" class="mt-1 h-5 w-5" />
-              <span><strong>Static.</strong> The code holds the content itself, with no tracking. It keeps working even if we go away.</span>
-            </label>
+          <fieldset>
+            <legend class="kicker marker mb-3">1 &middot; What is the code for?</legend>
+            <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <label class="choice">
+                <input type="radio" name="ctype" value="url" checked />
+                <span class="face"><strong class="font-display text-lg">Website link</strong><span class="text-xs opacity-80">Track scans, or not</span></span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="ctype" value="text" />
+                <span class="face"><strong class="font-display text-lg">Plain text</strong><span class="text-xs opacity-80">Any message</span></span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="ctype" value="wifi" />
+                <span class="face"><strong class="font-display text-lg">Wi-Fi</strong><span class="text-xs opacity-80">Join a network</span></span>
+              </label>
+              <label class="choice">
+                <input type="radio" name="ctype" value="email" />
+                <span class="face"><strong class="font-display text-lg">Email</strong><span class="text-xs opacity-80">A ready-to-send message</span></span>
+              </label>
+            </div>
           </fieldset>
 
-          <section id="dynamic-panel" aria-labelledby="dynamic-heading" class="card space-y-3">
-            <h2 id="dynamic-heading" class="kicker marker inline-block">2 &middot; Choose your link</h2>
-            <div>
-              <label for="dynamic-link" class="label">Link</label>
-              <select id="dynamic-link" class="field"></select>
-            </div>
-            <p id="dynamic-note" class="text-sm text-zinc-700"></p>
-            <div id="saved-style-controls" class="flex flex-wrap items-center gap-2" hidden>
-              <button id="save-style" type="button" class="btn btn-sm">Save this style for this link</button>
-              <button id="reset-style" type="button" class="btn btn-sm">Reset to default style</button>
-            </div>
-            <p id="saved-style-note" class="text-sm text-zinc-700"></p>
-            <p class="hint">Saved styles keep colours, shapes, border, error correction and sizes. Logos are not saved, because they stay in your browser.</p>
-            <p class="text-sm">Need a new link? <a href="/dashboard" class="hl font-semibold">Create one on the dashboard</a>.</p>
-          </section>
+          <section aria-labelledby="content-heading" class="card space-y-5">
+            <h2 id="content-heading" class="kicker marker inline-block">2 &middot; The details</h2>
 
-          <section id="static-panel" aria-labelledby="static-heading" class="card space-y-4" hidden>
-            <h2 id="static-heading" class="kicker marker inline-block">2 &middot; What should it contain?</h2>
-            <div>
-              <label for="static-type" class="label">Content type</label>
-              <select id="static-type" class="field">
-                <option value="url">Website link</option>
-                <option value="text">Plain text</option>
-                <option value="wifi">Wi-Fi network</option>
-                <option value="email">Email</option>
-              </select>
+            <div id="panel-url" class="space-y-5">
+              <fieldset class="space-y-1">
+                <legend class="label">How should the code work?</legend>
+                <label class="flex cursor-pointer items-start gap-3 p-1">
+                  <input type="radio" name="urlmode" value="new" class="mt-1 h-5 w-5" />
+                  <span><strong>Create a tracked link.</strong> We make a short link, count every scan, and let you change the destination later without reprinting. It is saved in your dashboard.</span>
+                </label>
+                <label class="flex cursor-pointer items-start gap-3 p-1">
+                  <input type="radio" name="urlmode" value="existing" class="mt-1 h-5 w-5" />
+                  <span><strong>Use one of my links.</strong> Make a code for a link you already have.</span>
+                </label>
+                <label class="flex cursor-pointer items-start gap-3 p-1">
+                  <input type="radio" name="urlmode" value="static" class="mt-1 h-5 w-5" checked />
+                  <span><strong>Plain code, no tracking.</strong> The code holds the address itself. No account needed, and it keeps working even if we go away.</span>
+                </label>
+              </fieldset>
+
+              <p id="signin-note" class="card-flat text-sm" hidden>
+                Tracked codes need a free account.
+                <a class="hl font-semibold" href="/login?next=/qr-studio">Sign in</a> to create one,
+                or choose a plain code.
+              </p>
+
+              <div id="created-box" class="card-flat space-y-3" hidden>
+                <p class="font-semibold">Created and saved to your dashboard.</p>
+                <p id="created-text" class="break-all font-mono text-sm"></p>
+                <div class="flex flex-wrap gap-2">
+                  <button id="created-copy" type="button" class="btn btn-sm">Copy short link</button>
+                  <a href="/dashboard" class="btn btn-sm">See it in your dashboard</a>
+                  <button id="created-another" type="button" class="btn btn-sm">Create another</button>
+                </div>
+              </div>
+
+              <div id="url-new" class="space-y-4" hidden>
+                <div>
+                  <label for="new-destination" class="label">Where should the code lead?</label>
+                  <input id="new-destination" type="url" inputmode="url" placeholder="https://example.com/a-long-page" autocomplete="off" class="field" />
+                </div>
+                <div class="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label for="new-slug" class="label">Custom ending (optional)</label>
+                    <input id="new-slug" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" class="field" />
+                    <p class="hint">3 to 32 letters, numbers, hyphens or underscores. Leave empty for a random one.</p>
+                  </div>
+                  <div>
+                    <label for="new-title" class="label">Name (optional)</label>
+                    <input id="new-title" type="text" maxlength="100" autocomplete="off" class="field" />
+                    <p class="hint">Only you can see this.</p>
+                  </div>
+                </div>
+                <button id="create-button" type="button" class="btn-primary w-full sm:w-auto">Create link and QR code</button>
+              </div>
+
+              <div id="url-existing" class="space-y-3" hidden>
+                <div>
+                  <label for="dynamic-link" class="label">Link</label>
+                  <select id="dynamic-link" class="field"></select>
+                </div>
+                <p id="dynamic-note" class="text-sm text-zinc-700"></p>
+                <div id="saved-style-controls" class="flex flex-wrap items-center gap-2" hidden>
+                  <button id="save-style" type="button" class="btn btn-sm">Save this style for this link</button>
+                  <button id="reset-style" type="button" class="btn btn-sm">Reset to default style</button>
+                </div>
+                <p id="saved-style-note" class="text-sm text-zinc-700"></p>
+                <p class="hint">Saved styles keep colours, shapes, border, error correction and sizes. Logos are not saved, because they stay in your browser.</p>
+              </div>
+
+              <div id="url-static">
+                <label for="static-url" class="label">Link</label>
+                <input id="static-url" type="url" inputmode="url" placeholder="https://example.com/page" autocomplete="off" class="field" />
+              </div>
             </div>
-            <div id="form-url">
-              <label for="static-url" class="label">Link</label>
-              <input id="static-url" type="url" inputmode="url" placeholder="https://example.com/page" autocomplete="off" class="field" />
-            </div>
+
             <div id="form-text" hidden>
               <label for="static-text" class="label">Text</label>
-              <textarea id="static-text" rows="3" class="field"></textarea>
+              <textarea id="static-text" rows="4" class="field"></textarea>
+              <p class="hint">Whoever scans it will see this text. Keep it short for a code that scans easily.</p>
             </div>
+
             <div id="form-wifi" class="space-y-4" hidden>
               <div><label for="wifi-ssid" class="label">Network name</label><input id="wifi-ssid" type="text" maxlength="32" autocomplete="off" class="field" /></div>
               <div><label for="wifi-password" class="label">Password</label><input id="wifi-password" type="text" maxlength="63" autocomplete="off" class="field" /></div>
@@ -100,7 +160,9 @@
                 </select>
               </div>
               <label class="flex min-h-11 items-center gap-2 text-sm"><input id="wifi-hidden" type="checkbox" class="h-5 w-5" /> Hidden network</label>
+              <p class="hint">Your Wi-Fi details stay in your browser. They are never sent to us. Anyone who scans the code can join the network, so print it only where you are happy for them to.</p>
             </div>
+
             <div id="form-email" class="space-y-4" hidden>
               <div><label for="email-to" class="label">Send to</label><input id="email-to" type="email" inputmode="email" autocomplete="off" class="field" /></div>
               <div><label for="email-subject" class="label">Subject (optional)</label><input id="email-subject" type="text" autocomplete="off" class="field" /></div>
@@ -222,6 +284,9 @@
             <div id="qr-preview" class="mx-auto flex min-h-[200px] items-center justify-center [&_canvas]:h-auto [&_canvas]:max-w-full [&_svg]:h-auto [&_svg]:max-w-full"></div>
             <p id="preview-empty" class="px-2 py-8 text-center text-sm"></p>
           </div>
+          <p id="preview-note" class="card-flat text-sm font-semibold" hidden>
+            This is a preview. The real code is made when you press "Create link and QR code", and downloads unlock then.
+          </p>
 
           <div class="card-flat">
             <h3 class="text-lg font-bold">Will it scan?</h3>

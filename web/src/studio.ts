@@ -1,6 +1,7 @@
 import QRCodeStyling from 'qr-code-styling'
 import {
   ApiError,
+  createLink,
   getQrStyle,
   listLinks,
   resetQrStyle,
@@ -12,7 +13,8 @@ import { buildPayload, type PayloadInput } from './qr/payload'
 import { checkScannability, summarizeChecks, type Check, type EccLevel } from './qr/scannability'
 
 type QrOptions = NonNullable<ConstructorParameters<typeof QRCodeStyling>[0]>
-type Mode = 'dynamic' | 'static'
+type ContentType = 'url' | 'text' | 'wifi' | 'email'
+type UrlMode = 'static' | 'new' | 'existing'
 type DotStyle = 'rounded' | 'extra-rounded' | 'dots' | 'classy' | 'classy-rounded' | 'square'
 type CornerStyle = 'extra-rounded' | 'square' | 'dot'
 type CornerDotStyle = 'dot' | 'square'
@@ -45,10 +47,26 @@ const PRESETS: Record<string, Preset> = {
   },
 }
 
+const DEFAULT_STYLE: SavedQrStyle = {
+  dots: '#09090b',
+  corners: '#18181b',
+  background: '#ffffff',
+  transparent: false,
+  dotStyle: 'rounded',
+  cornerStyle: 'extra-rounded',
+  cornerDot: 'dot',
+  marginPercent: 8,
+  ecl: 'Q',
+  logoScale: 0.25,
+  exportSize: 1024,
+}
+
 const PREVIEW_SIZE = 300
 const SVG_EXPORT_SIZE = 1024
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp']
 const MAX_LOGO_BYTES = 500 * 1024
+const SIGN_IN_REASON =
+  'Tracked codes need a free account. Sign in, or choose "Plain code, no tracking".'
 
 const CHECK_STYLES: Record<Check['level'], string> = {
   ok: 'bg-green-100 text-green-900',
@@ -67,21 +85,34 @@ function byId<T extends HTMLElement>(id: string): T {
   return node as T
 }
 
-const dynamicPanel = byId<HTMLElement>('dynamic-panel')
-const staticPanel = byId<HTMLElement>('static-panel')
+const panelUrl = byId<HTMLElement>('panel-url')
+const signinNote = byId<HTMLElement>('signin-note')
+const createdBox = byId<HTMLElement>('created-box')
+const createdText = byId<HTMLElement>('created-text')
+const createdCopy = byId<HTMLButtonElement>('created-copy')
+const createdAnother = byId<HTMLButtonElement>('created-another')
+const urlNew = byId<HTMLElement>('url-new')
+const newDestination = byId<HTMLInputElement>('new-destination')
+const newSlug = byId<HTMLInputElement>('new-slug')
+const newTitle = byId<HTMLInputElement>('new-title')
+const createButton = byId<HTMLButtonElement>('create-button')
+const urlExisting = byId<HTMLElement>('url-existing')
 const dynamicLink = byId<HTMLSelectElement>('dynamic-link')
 const dynamicNote = byId<HTMLElement>('dynamic-note')
-const staticType = byId<HTMLSelectElement>('static-type')
-const formUrl = byId<HTMLElement>('form-url')
-const formText = byId<HTMLElement>('form-text')
-const formWifi = byId<HTMLElement>('form-wifi')
-const formEmail = byId<HTMLElement>('form-email')
+const savedControls = byId<HTMLElement>('saved-style-controls')
+const savedNote = byId<HTMLElement>('saved-style-note')
+const saveStyleButton = byId<HTMLButtonElement>('save-style')
+const resetStyleButton = byId<HTMLButtonElement>('reset-style')
+const urlStatic = byId<HTMLElement>('url-static')
 const staticUrl = byId<HTMLInputElement>('static-url')
+const formText = byId<HTMLElement>('form-text')
 const staticText = byId<HTMLTextAreaElement>('static-text')
+const formWifi = byId<HTMLElement>('form-wifi')
 const wifiSsid = byId<HTMLInputElement>('wifi-ssid')
 const wifiPassword = byId<HTMLInputElement>('wifi-password')
 const wifiSecurity = byId<HTMLSelectElement>('wifi-security')
 const wifiHidden = byId<HTMLInputElement>('wifi-hidden')
+const formEmail = byId<HTMLElement>('form-email')
 const emailTo = byId<HTMLInputElement>('email-to')
 const emailSubject = byId<HTMLInputElement>('email-subject')
 const emailBody = byId<HTMLTextAreaElement>('email-body')
@@ -108,16 +139,13 @@ const exportSize = byId<HTMLSelectElement>('export-size')
 
 const previewBox = byId<HTMLDivElement>('qr-preview')
 const previewEmpty = byId<HTMLElement>('preview-empty')
+const previewNote = byId<HTMLElement>('preview-note')
 const checksList = byId<HTMLUListElement>('checks')
 const checkSummary = byId<HTMLElement>('check-summary')
 const downloadSvg = byId<HTMLButtonElement>('download-svg')
 const downloadPng = byId<HTMLButtonElement>('download-png')
 const copySvg = byId<HTMLButtonElement>('copy-svg')
 const statusBox = byId<HTMLElement>('studio-status')
-const savedControls = byId<HTMLElement>('saved-style-controls')
-const savedNote = byId<HTMLElement>('saved-style-note')
-const saveStyleButton = byId<HTMLButtonElement>('save-style')
-const resetStyleButton = byId<HTMLButtonElement>('reset-style')
 
 const style = {
   dots: '#09090b',
@@ -137,6 +165,8 @@ const style = {
 let links: LinkItem[] = []
 let signedIn = false
 let preview: QRCodeStyling | null = null
+let lastCreated: LinkItem | null = null
+let styleRequest = 0
 
 function showStatus(message: string, isError: boolean): void {
   statusBox.textContent = message
@@ -145,13 +175,25 @@ function showStatus(message: string, isError: boolean): void {
     : 'text-sm font-semibold text-green-800'
 }
 
-function currentMode(): Mode {
-  const checked = document.querySelector<HTMLInputElement>('input[name="mode"]:checked')
-  return checked?.value === 'static' ? 'static' : 'dynamic'
+function contentType(): ContentType {
+  const checked = document.querySelector<HTMLInputElement>('input[name="ctype"]:checked')
+  const value = checked?.value
+  return value === 'text' || value === 'wifi' || value === 'email' ? value : 'url'
 }
 
-function readStaticInput(): PayloadInput {
-  switch (staticType.value) {
+function urlMode(): UrlMode {
+  const checked = document.querySelector<HTMLInputElement>('input[name="urlmode"]:checked')
+  const value = checked?.value
+  return value === 'new' || value === 'existing' ? value : 'static'
+}
+
+function setRadio(name: string, value: string): void {
+  const radio = document.querySelector<HTMLInputElement>(`input[name="${name}"][value="${value}"]`)
+  if (radio) radio.checked = true
+}
+
+function readInput(type: Exclude<ContentType, 'url'>): PayloadInput {
+  switch (type) {
     case 'text':
       return { kind: 'text', text: staticText.value }
     case 'wifi':
@@ -164,36 +206,64 @@ function readStaticInput(): PayloadInput {
       }
     case 'email':
       return { kind: 'email', to: emailTo.value, subject: emailSubject.value, body: emailBody.value }
-    default:
-      return { kind: 'url', url: staticUrl.value }
   }
 }
 
+function placeholderLink(): string {
+  const wanted = newSlug.value.trim()
+  const slug = /^[A-Za-z0-9_-]{3,32}$/.test(wanted) ? wanted : 'abcdef'
+  return `${window.location.origin}/${slug}?s=q`
+}
+
 type Current =
-  | { ok: true; data: string; filename: string }
+  | { ok: true; data: string; filename: string; downloadable: boolean; placeholder: boolean }
   | { ok: false; reason: string }
 
 function currentPayload(): Current {
-  if (currentMode() === 'dynamic') {
-    if (!signedIn) {
-      return {
-        ok: false,
-        reason: 'Sign in to make codes you can track and change later, or choose "Static" above.',
-      }
+  const type = contentType()
+
+  if (type === 'url') {
+    const mode = urlMode()
+
+    if (mode === 'static') {
+      const result = buildPayload({ kind: 'url', url: staticUrl.value })
+      if (!result.ok) return { ok: false, reason: result.reason }
+      return { ok: true, data: result.data, filename: 'phub-ink-qr', downloadable: true, placeholder: false }
     }
+
+    if (!signedIn) return { ok: false, reason: SIGN_IN_REASON }
+
+    if (mode === 'new') {
+      if (newDestination.value.trim() === '') {
+        return { ok: false, reason: 'Enter the link you want the code to lead to.' }
+      }
+      const result = buildPayload({ kind: 'url', url: newDestination.value })
+      if (!result.ok) return { ok: false, reason: result.reason }
+      return { ok: true, data: placeholderLink(), filename: 'phub-ink-qr', downloadable: false, placeholder: true }
+    }
+
     const link = links.find((item) => String(item.id) === dynamicLink.value)
     if (!link) {
       return {
         ok: false,
-        reason: links.length === 0 ? 'You have no links yet. Create one on the dashboard first.' : 'Choose one of your links.',
+        reason:
+          links.length === 0
+            ? 'You have no links yet. Choose "Create a tracked link" to make one.'
+            : 'Choose one of your links.',
       }
     }
-    return { ok: true, data: `${link.shortUrl}?s=q`, filename: `ph-ink-${link.slug}` }
+    return {
+      ok: true,
+      data: `${link.shortUrl}?s=q`,
+      filename: `phub-ink-${link.slug}`,
+      downloadable: true,
+      placeholder: false,
+    }
   }
 
-  const result = buildPayload(readStaticInput())
+  const result = buildPayload(readInput(type))
   if (!result.ok) return { ok: false, reason: result.reason }
-  return { ok: true, data: result.data, filename: 'ph-ink-qr' }
+  return { ok: true, data: result.data, filename: 'phub-ink-qr', downloadable: true, placeholder: false }
 }
 
 function readStyle(): void {
@@ -273,7 +343,7 @@ function renderChecks(checks: Check[]): void {
     `${summary.passed} passed, ${plural(summary.warnings, 'warning')}, ${plural(summary.problems, 'problem')}`
 }
 
-function setButtons(enabled: boolean): void {
+function setDownloads(enabled: boolean): void {
   downloadSvg.disabled = !enabled
   downloadPng.disabled = !enabled
   copySvg.disabled = !enabled
@@ -284,9 +354,10 @@ function showEmpty(reason: string): void {
   preview = null
   previewEmpty.textContent = reason
   previewEmpty.hidden = false
+  previewNote.hidden = true
   checksList.replaceChildren()
   checkSummary.textContent = ''
-  setButtons(false)
+  setDownloads(false)
 }
 
 function drawPreview(data: string): void {
@@ -313,9 +384,34 @@ function updateDynamicNote(): void {
       : 'This link is paused, so scans will show a notice until you turn it on.')
 }
 
+function refreshCreatedBox(): void {
+  const visible =
+    lastCreated !== null &&
+    contentType() === 'url' &&
+    urlMode() === 'existing' &&
+    dynamicLink.value === String(lastCreated.id)
+  createdBox.hidden = !visible
+  if (visible && lastCreated) createdText.textContent = lastCreated.shortUrl
+}
+
+function togglePanels(): void {
+  const type = contentType()
+  const mode = urlMode()
+  panelUrl.hidden = type !== 'url'
+  formText.hidden = type !== 'text'
+  formWifi.hidden = type !== 'wifi'
+  formEmail.hidden = type !== 'email'
+  urlNew.hidden = mode !== 'new'
+  urlExisting.hidden = mode !== 'existing'
+  urlStatic.hidden = mode !== 'static'
+  signinNote.hidden = signedIn || mode === 'static'
+}
+
 function update(): void {
   readStyle()
   updateDynamicNote()
+  refreshCreatedBox()
+
   const current = currentPayload()
   if (!current.ok) {
     showEmpty(current.reason)
@@ -323,8 +419,11 @@ function update(): void {
   }
   drawPreview(current.data)
   renderChecks(scanChecks(current.data.length))
-  setButtons(true)
+  setDownloads(current.downloadable)
+  previewNote.hidden = !current.placeholder
 }
+
+// ---------- Exporting ----------
 
 async function makeBlob(data: string, extension: 'png' | 'svg'): Promise<Blob> {
   const size = extension === 'svg' ? SVG_EXPORT_SIZE : style.exportSize
@@ -353,22 +452,22 @@ function confirmDespiteProblems(payloadLength: number): boolean {
 
 async function download(extension: 'png' | 'svg'): Promise<void> {
   const current = currentPayload()
-  if (!current.ok || !confirmDespiteProblems(current.data.length)) return
-  setButtons(false)
+  if (!current.ok || !current.downloadable || !confirmDespiteProblems(current.data.length)) return
+  setDownloads(false)
   try {
     saveBlob(await makeBlob(current.data, extension), `${current.filename}.${extension}`)
     showStatus(`Downloaded the ${extension.toUpperCase()} file.`, false)
   } catch {
     showStatus('Could not create the file. Try a smaller size.', true)
   } finally {
-    setButtons(true)
+    update()
   }
 }
 
 async function copySvgCode(): Promise<void> {
   const current = currentPayload()
-  if (!current.ok) return
-  setButtons(false)
+  if (!current.ok || !current.downloadable) return
+  setDownloads(false)
   try {
     const blob = await makeBlob(current.data, 'svg')
     await navigator.clipboard.writeText(await blob.text())
@@ -376,22 +475,11 @@ async function copySvgCode(): Promise<void> {
   } catch {
     showStatus('Could not copy the code.', true)
   } finally {
-    setButtons(true)
+    update()
   }
 }
 
-function showStaticForm(): void {
-  formUrl.hidden = staticType.value !== 'url'
-  formText.hidden = staticType.value !== 'text'
-  formWifi.hidden = staticType.value !== 'wifi'
-  formEmail.hidden = staticType.value !== 'email'
-}
-
-function togglePanels(): void {
-  const isDynamic = currentMode() === 'dynamic'
-  dynamicPanel.hidden = !isDynamic
-  staticPanel.hidden = isDynamic
-}
+// ---------- Colours and presets ----------
 
 function setColor(picker: HTMLInputElement, hex: HTMLInputElement, value: string): void {
   picker.value = value
@@ -424,6 +512,8 @@ function applyPreset(name: string): void {
   cornerDotSelect.value = preset.cornerDot
   update()
 }
+
+// ---------- Logo ----------
 
 function removeLogo(): void {
   style.logo = ''
@@ -465,58 +555,10 @@ logoRemove.addEventListener('click', () => {
   update()
 })
 
-for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="mode"]')) {
-  radio.addEventListener('change', () => {
-    togglePanels()
-    update()
-  })
-}
-
-staticType.addEventListener('change', showStaticForm)
-wifiSecurity.addEventListener('change', () => {
-  wifiPassword.disabled = wifiSecurity.value === 'nopass'
-})
-
-const watched: HTMLElement[] = [
-  dynamicLink, staticType, staticUrl, staticText, wifiSsid, wifiPassword, wifiSecurity,
-  wifiHidden, emailTo, emailSubject, emailBody, dotStyleSelect, cornerStyleSelect,
-  cornerDotSelect, transparentBox, marginRange, eclSelect, logoScale, exportSize,
-]
-for (const control of watched) {
-  control.addEventListener('input', update)
-  control.addEventListener('change', update)
-}
-
-wireColor(dotsPicker, dotsHex)
-wireColor(cornersPicker, cornersHex)
-wireColor(backgroundPicker, backgroundHex)
-
-for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-preset]')) {
-  button.addEventListener('click', () => applyPreset(button.dataset.preset ?? ''))
-}
-
-downloadSvg.addEventListener('click', () => void download('svg'))
-downloadPng.addEventListener('click', () => void download('png'))
-copySvg.addEventListener('click', () => void copySvgCode())
-
-const DEFAULT_STYLE: SavedQrStyle = {
-  dots: '#09090b',
-  corners: '#18181b',
-  background: '#ffffff',
-  transparent: false,
-  dotStyle: 'rounded',
-  cornerStyle: 'extra-rounded',
-  cornerDot: 'dot',
-  marginPercent: 8,
-  ecl: 'Q',
-  logoScale: 0.25,
-  exportSize: 1024,
-}
-
-let styleRequest = 0
+// ---------- Saved styles (for tracked links) ----------
 
 function selectedLinkId(): number | null {
-  if (!signedIn || currentMode() !== 'dynamic') return null
+  if (!signedIn || contentType() !== 'url' || urlMode() !== 'existing') return null
   const id = Number(dynamicLink.value)
   return Number.isInteger(id) && id > 0 ? id : null
 }
@@ -611,9 +653,128 @@ resetStyleButton.addEventListener('click', () => {
     })
 })
 
+// ---------- Creating a tracked link from here ----------
+
+function fillLinkOptions(selected: string): void {
+  const options = [new Option(links.length > 0 ? 'Choose a link' : 'No links yet', '')]
+  for (const link of links) {
+    options.push(new Option(`${link.title ?? link.slug}: ${link.shortUrl}`, String(link.id)))
+  }
+  dynamicLink.replaceChildren(...options)
+  if (selected !== '' && links.some((link) => String(link.id) === selected)) {
+    dynamicLink.value = selected
+  }
+}
+
+async function createTracked(): Promise<void> {
+  const check = buildPayload({ kind: 'url', url: newDestination.value })
+  if (!check.ok) {
+    showStatus(check.reason, true)
+    newDestination.focus()
+    return
+  }
+
+  createButton.disabled = true
+  try {
+    const link = await createLink({
+      destination: check.data,
+      slug: newSlug.value.trim(),
+      title: newTitle.value.trim(),
+    })
+
+    lastCreated = link
+    links = [link, ...links.filter((item) => item.id !== link.id)]
+    fillLinkOptions(String(link.id))
+    newDestination.value = ''
+    newSlug.value = ''
+    newTitle.value = ''
+
+    setRadio('urlmode', 'existing')
+    togglePanels()
+    savedControls.hidden = false
+    savedNote.textContent =
+      'This link has no saved style yet. Press "Save this style for this link" to keep the look you chose.'
+    showStatus('Link created and saved to your dashboard. Your code is ready to download.', false)
+    update()
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 401) {
+      signedIn = false
+      togglePanels()
+      update()
+      showStatus('Your session ended. Please sign in again.', true)
+    } else {
+      showStatus(
+        error instanceof ApiError ? error.message : 'Could not reach the server. Please try again.',
+        true,
+      )
+    }
+  } finally {
+    createButton.disabled = false
+  }
+}
+
+createButton.addEventListener('click', () => void createTracked())
+
+createdCopy.addEventListener('click', () => {
+  if (!lastCreated) return
+  void navigator.clipboard
+    .writeText(lastCreated.shortUrl)
+    .then(() => showStatus('Short link copied.', false))
+    .catch(() => showStatus('Could not copy. Select the address and copy it by hand.', true))
+})
+
+createdAnother.addEventListener('click', () => {
+  lastCreated = null
+  setRadio('urlmode', 'new')
+  togglePanels()
+  savedControls.hidden = true
+  savedNote.textContent = ''
+  update()
+  newDestination.focus()
+})
+
+// ---------- Wiring ----------
+
+for (const radio of document.querySelectorAll<HTMLInputElement>('input[name="ctype"], input[name="urlmode"]')) {
+  radio.addEventListener('change', () => {
+    togglePanels()
+    void loadSavedStyle().then(update)
+  })
+}
+
 dynamicLink.addEventListener('change', () => {
   void loadSavedStyle().then(update)
 })
+
+wifiSecurity.addEventListener('change', () => {
+  wifiPassword.disabled = wifiSecurity.value === 'nopass'
+})
+
+const watched: HTMLElement[] = [
+  newDestination, newSlug, newTitle, staticUrl, staticText, wifiSsid, wifiPassword,
+  wifiSecurity, wifiHidden, emailTo, emailSubject, emailBody, dotStyleSelect,
+  cornerStyleSelect, cornerDotSelect, transparentBox, marginRange, eclSelect, logoScale,
+  exportSize,
+]
+for (const control of watched) {
+  control.addEventListener('input', update)
+  control.addEventListener('change', update)
+}
+
+wireColor(dotsPicker, dotsHex)
+wireColor(cornersPicker, cornersHex)
+wireColor(backgroundPicker, backgroundHex)
+
+for (const button of document.querySelectorAll<HTMLButtonElement>('button[data-preset]')) {
+  button.addEventListener('click', () => applyPreset(button.dataset.preset ?? ''))
+}
+
+downloadSvg.addEventListener('click', () => void download('svg'))
+downloadPng.addEventListener('click', () => void download('png'))
+copySvg.addEventListener('click', () => void copySvgCode())
+
+// ---------- Start ----------
+
 async function init(): Promise<void> {
   try {
     const result = await listLinks()
@@ -622,26 +783,21 @@ async function init(): Promise<void> {
   } catch (error) {
     signedIn = false
     if (!(error instanceof ApiError && error.status === 401)) {
-      showStatus('Could not load your links. You can still make static codes.', true)
+      showStatus('Could not load your links. You can still make plain codes.', true)
     }
   }
 
-  dynamicLink.replaceChildren(
-    new Option(links.length > 0 ? 'Choose a link' : 'No links yet', ''),
-    ...links.map((link) => new Option(`${link.title ?? link.slug}: ${link.shortUrl}`, String(link.id))),
-  )
+  fillLinkOptions('')
 
+  let mode: UrlMode = signedIn ? 'new' : 'static'
   const wanted = new URLSearchParams(window.location.search).get('link')
   if (wanted && links.some((link) => String(link.id) === wanted)) {
     dynamicLink.value = wanted
+    mode = 'existing'
   }
-
-  const mode: Mode = signedIn && links.length > 0 ? 'dynamic' : 'static'
-  const radio = document.querySelector<HTMLInputElement>(`input[name="mode"][value="${mode}"]`)
-  if (radio) radio.checked = true
+  setRadio('urlmode', mode)
 
   togglePanels()
-  showStaticForm()
   await loadSavedStyle()
   update()
 }

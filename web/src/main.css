@@ -483,3 +483,47 @@ dialog::backdrop { background-color: rgba(0, 0, 0, 0.6); }
 
 /* Charts are drawn on a canvas with fixed dark colours, so invert them in dark mode. */
 :root[data-theme="dark"] .chart canvas { filter: invert(1); }
+
+
+/* ---------- Choice cards: radio buttons shown as big buttons ---------- */
+
+.choice {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+.choice input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.choice .face {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  height: 100%;
+  padding: 0.8rem 0.9rem;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: 3px 3px 0 0 var(--shadow);
+  transition: background-color 0.08s ease, color 0.08s ease;
+}
+.choice:hover .face {
+  background: var(--hi);
+  color: var(--on-hi);
+}
+.choice input:checked + .face,
+.choice:hover input:checked + .face {
+  background: var(--ink);
+  color: var(--paper);
+}
+.choice input:focus-visible + .face {
+  outline: 3px solid var(--ink);
+  outline-offset: 2px;
+}
