@@ -33,7 +33,7 @@ describe('sendLoginEmail', () => {
     const env: Bindings = {
       DB: fakeDb,
       RESEND_API_KEY: 'test-key',
-      EMAIL_FROM: 'ph.ink <login@ph.ink>',
+      EMAIL_FROM: 'phub.ink <login@phub.ink>',
     }
 
     await sendLoginEmail(env, 'a@example.com', 'http://x/link')
@@ -49,7 +49,7 @@ describe('sendLoginEmail', () => {
     const env: Bindings = {
       DB: fakeDb,
       RESEND_API_KEY: 'test-key',
-      EMAIL_FROM: 'ph.ink <login@ph.ink>',
+      EMAIL_FROM: 'phub.ink <login@phub.ink>',
     }
     await expect(
       sendLoginEmail(env, 'a@example.com', 'http://x/link'),

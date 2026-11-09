@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import auth from '../src/routes/auth'
 import type { Bindings } from '../src/types'
 
-const env: Bindings = { DB: {} as D1Database, APP_URL: 'https://ph.ink' }
+const env: Bindings = { DB: {} as D1Database, APP_URL: 'https://phub.ink' }
 const TOKEN = 'a'.repeat(64)
 
 describe('GET /verify', () => {

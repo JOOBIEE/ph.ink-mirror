@@ -21,7 +21,7 @@ export const RESERVED_SLUGS = new Set([
   'dashboard', 'settings', 'account', 'static', 'assets', 'robots', 'sitemap',
   'favicon', 'report', 'terms', 'privacy', 'about', 'help', 'support',
   'security', 'abuse', 'status', 'health', 'qr', 'docs', 'blog', 'contact',
-  'www', 'mail', 'app', 'phink', 'qr-studio', 'index',
+  'www', 'mail', 'app', 'phink', 'phub', 'qr-studio', 'index',
 ])
 
 export function isReservedSlug(slug: string): boolean {

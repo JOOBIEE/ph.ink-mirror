@@ -3,7 +3,7 @@ import { Hono } from 'hono'
 import { originCheck } from '../src/middleware/origin-check'
 import type { Bindings } from '../src/types'
 
-const env: Bindings = { DB: {} as D1Database, APP_URL: 'https://ph.ink' }
+const env: Bindings = { DB: {} as D1Database, APP_URL: 'https://phub.ink' }
 
 function makeApp() {
   const app = new Hono<{ Bindings: Bindings }>()
@@ -26,7 +26,7 @@ describe('originCheck', () => {
   it('allows POST from our own origin', async () => {
     const res = await makeApp().request(
       '/x',
-      { method: 'POST', headers: { Origin: 'https://ph.ink' } },
+      { method: 'POST', headers: { Origin: 'https://phub.ink' } },
       env,
     )
     expect(res.status).toBe(200)
@@ -36,8 +36,8 @@ describe('originCheck', () => {
     ['POST', 'https://evil.example'],
     ['PATCH', 'https://evil.example'],
     ['DELETE', 'https://evil.example'],
-    ['POST', 'https://ph.ink.evil.example'],
-    ['POST', 'http://ph.ink'],
+    ['POST', 'https://phub.ink.evil.example'],
+    ['POST', 'http://phub.ink'],
     ['POST', 'null'],
   ])('blocks %s from origin %s', async (method, origin) => {
     const res = await makeApp().request('/x', { method, headers: { Origin: origin } }, env)

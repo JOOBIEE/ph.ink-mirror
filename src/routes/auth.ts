@@ -148,12 +148,12 @@ auth.get('/verify', (c) => {
   const next = safeNext(c.req.query('next'))
   return page(
     200,
-    'Sign in to ph.ink',
+    'Sign in to phub.ink',
     '<p>Press the button to finish signing in.</p>' +
       '<form method="post" action="/api/auth/verify">' +
       `<input type="hidden" name="token" value="${token}">` +
       (next ? `<input type="hidden" name="next" value="${next}">` : '') +
-      '<button type="submit">Continue to ph.ink</button></form>',
+      '<button type="submit">Continue to phub.ink</button></form>',
   )
 })
 

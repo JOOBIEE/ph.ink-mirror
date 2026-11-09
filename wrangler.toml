@@ -8,8 +8,14 @@ directory = "./web/dist"
 [triggers]
 crons = ["15 3 * * *"]
 
+[[routes]]
+pattern = "phub.ink"
+custom_domain = true
+
 [vars]
-APP_URL = "https://ph.ink"
+APP_URL = "https://phub.ink"
+TURNSTILE_SITE_KEY = "0x4AAAAAAF6KR0RQlpBQDwpD"
+EMAIL_FROM = "phub.ink <login@mail.phub.ink>"
 
 [[d1_databases]]
 binding = "DB"

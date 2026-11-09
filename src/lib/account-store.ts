@@ -114,7 +114,7 @@ export async function buildExport(
   return {
     exportedAt: new Date().toISOString(),
     about:
-      'Your ph.ink data. All times are UTC. Individual clicks are kept for 90 days, and older ' +
+      'Your phub.ink data. All times are UTC. Individual clicks are kept for 90 days, and older ' +
       'days appear as daily summaries. Visitor fingerprints are not included.',
     account: {
       id: accountRow.id,

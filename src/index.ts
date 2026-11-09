@@ -17,7 +17,7 @@ const app = new Hono<{ Bindings: Bindings }>()
 
 app.use('*', securityHeaders)
 
-app.get('/', (c) => c.text('ph.ink is alive'))
+app.get('/', (c) => c.text('phub.ink is alive'))
 app.get('/robots.txt', (c) => c.text('User-agent: *\nDisallow: /api/\n'))
 app.get('/favicon.ico', (c) => c.body(null, 404))
 

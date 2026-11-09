@@ -13,13 +13,13 @@ export function parseReportedLink(raw: string, appUrl: string | undefined): Link
     return { ok: false, error: 'Enter the short link you want to report.' }
   }
   if (text.length > 300) {
-    return { ok: false, error: 'That is too long to be a ph.ink link.' }
+    return { ok: false, error: 'That is too long to be a phub.ink link.' }
   }
   if (SLUG_FORMAT.test(text)) {
     return { ok: true, slug: text }
   }
   if (!appUrl) {
-    return { ok: false, error: 'Enter the short link, for example https://ph.ink/abc123.' }
+    return { ok: false, error: 'Enter the short link, for example https://phub.ink/abc123.' }
   }
 
   let url: URL
@@ -31,7 +31,7 @@ export function parseReportedLink(raw: string, appUrl: string | undefined): Link
     return { ok: false, error: 'That is not a valid link.' }
   }
   if (url.host.toLowerCase() !== ours) {
-    return { ok: false, error: 'That is not a ph.ink link.' }
+    return { ok: false, error: 'That is not a phub.ink link.' }
   }
 
   const first = url.pathname.split('/').filter((part) => part !== '')[0] ?? ''

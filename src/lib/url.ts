@@ -2,7 +2,7 @@ export type UrlCheck = { ok: true; url: string } | { ok: false; reason: string }
 
 const MAX_URL_LENGTH = 2000
 
-const OWN_DOMAIN = 'ph.ink'
+const OWN_DOMAIN = 'phub.ink'
 
 const SHORTENER_DOMAINS = [
   'bit.ly', 'bitly.com', 't.co', 'tinyurl.com', 'goo.gl', 'ow.ly',
@@ -55,7 +55,7 @@ export function validateDestination(input: string): UrlCheck {
     return { ok: false, reason: 'Links to local or private addresses are not allowed.' }
   }
   if (isOrSubdomainOf(host, OWN_DOMAIN)) {
-    return { ok: false, reason: 'You cannot shorten a ph.ink link.' }
+    return { ok: false, reason: 'You cannot shorten a phub.ink link.' }
   }
   if (SHORTENER_DOMAINS.some((domain) => isOrSubdomainOf(host, domain))) {
     return { ok: false, reason: 'Links from other link shorteners are not allowed.' }

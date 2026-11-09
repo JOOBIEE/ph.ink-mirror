@@ -23,9 +23,9 @@ export async function sendLoginEmail(
     body: JSON.stringify({
       from: env.EMAIL_FROM,
       to: [to],
-      subject: 'Your ph.ink sign-in link',
+      subject: 'Your phub.ink sign-in link',
       text:
-        'Use this link to sign in to ph.ink. It works once and expires in 15 minutes.\n\n' +
+        'Use this link to sign in to phub.ink. It works once and expires in 15 minutes.\n\n' +
         `${link}\n\nIf you did not ask for this, you can ignore this email.`,
     }),
   })

@@ -53,9 +53,9 @@ describe('validateDestination: rejects', () => {
   })
 
   it.each([
-    ['own domain', 'https://ph.ink/abc123'],
-    ['own subdomain', 'https://www.ph.ink/abc123'],
-    ['own domain with trailing dot', 'https://ph.ink./abc123'],
+    ['own domain', 'https://phub.ink/abc123'],
+    ['own subdomain', 'https://www.phub.ink/abc123'],
+    ['own domain with trailing dot', 'https://phub.ink./abc123'],
     ['other shortener', 'https://bit.ly/abc'],
     ['shortener subdomain', 'https://www.bit.ly/abc'],
   ])('rejects %s', (_name, input) => {

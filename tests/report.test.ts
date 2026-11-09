@@ -6,7 +6,7 @@ import {
   validateReport,
 } from '../src/lib/report'
 
-const APP = 'https://ph.ink'
+const APP = 'https://phub.ink'
 
 describe('parseReportedLink', () => {
   it('accepts a bare slug', () => {
@@ -18,32 +18,32 @@ describe('parseReportedLink', () => {
   })
 
   it('accepts a full link', () => {
-    expect(parseReportedLink('https://ph.ink/abc123', APP)).toEqual({ ok: true, slug: 'abc123' })
+    expect(parseReportedLink('https://phub.ink/abc123', APP)).toEqual({ ok: true, slug: 'abc123' })
   })
 
   it('ignores the query and extra path', () => {
-    expect(parseReportedLink('https://ph.ink/abc123?s=q', APP)).toEqual({ ok: true, slug: 'abc123' })
-    expect(parseReportedLink('https://ph.ink/abc123/extra', APP)).toEqual({ ok: true, slug: 'abc123' })
+    expect(parseReportedLink('https://phub.ink/abc123?s=q', APP)).toEqual({ ok: true, slug: 'abc123' })
+    expect(parseReportedLink('https://phub.ink/abc123/extra', APP)).toEqual({ ok: true, slug: 'abc123' })
   })
 
   it('accepts a link without a scheme', () => {
-    expect(parseReportedLink('ph.ink/abc123', APP)).toEqual({ ok: true, slug: 'abc123' })
+    expect(parseReportedLink('phub.ink/abc123', APP)).toEqual({ ok: true, slug: 'abc123' })
   })
 
   it('rejects links to other sites', () => {
     expect(parseReportedLink('https://evil.example/abc123', APP).ok).toBe(false)
-    expect(parseReportedLink('https://ph.ink.evil.example/abc123', APP).ok).toBe(false)
+    expect(parseReportedLink('https://phub.ink.evil.example/abc123', APP).ok).toBe(false)
   })
 
   it('rejects a path that is not a slug', () => {
-    expect(parseReportedLink('https://ph.ink/', APP).ok).toBe(false)
-    expect(parseReportedLink('https://ph.ink/a%20b', APP).ok).toBe(false)
-    expect(parseReportedLink('https://ph.ink/ab', APP).ok).toBe(false)
+    expect(parseReportedLink('https://phub.ink/', APP).ok).toBe(false)
+    expect(parseReportedLink('https://phub.ink/a%20b', APP).ok).toBe(false)
+    expect(parseReportedLink('https://phub.ink/ab', APP).ok).toBe(false)
   })
 
   it('only accepts bare slugs when the site address is unknown', () => {
     expect(parseReportedLink('abc123', undefined).ok).toBe(true)
-    expect(parseReportedLink('https://ph.ink/abc123', undefined).ok).toBe(false)
+    expect(parseReportedLink('https://phub.ink/abc123', undefined).ok).toBe(false)
   })
 
   it('rejects empty and very long input', () => {

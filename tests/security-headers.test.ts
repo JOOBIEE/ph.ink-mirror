@@ -82,9 +82,9 @@ describe('securityHeaders', () => {
   })
 
   it('sends HSTS over HTTPS only', async () => {
-    const secure = await makeApp().request('https://ph.ink/json')
+    const secure = await makeApp().request('https://phub.ink/json')
     expect(secure.headers.get('strict-transport-security')).toBe(HSTS)
-    const plain = await makeApp().request('http://ph.ink/json')
+    const plain = await makeApp().request('http://phub.ink/json')
     expect(plain.headers.get('strict-transport-security')).toBeNull()
   })
 

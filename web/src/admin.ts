@@ -1133,7 +1133,7 @@ async function init(): Promise<void> {
     const data = await getOverview()
     gate.hidden = true
     app.hidden = false
-    document.title = 'Admin · ph.ink'
+    document.title = 'Admin · phub.ink'
     applyOverview(data)
     await openTab('overview', false)
   } catch (error) {
