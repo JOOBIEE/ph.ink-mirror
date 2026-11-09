@@ -18,7 +18,8 @@
                "test:clean": "node scripts/clean-test-data.mjs",
         "test:turnstile": "node scripts/turnstile-test.mjs",
             "test:headers": "node scripts/headers-test.mjs",
-        "test:all": "npm run test:clean && npm run test:access && npm run test:abuse && npm run test:admin && npm run test:blocklist && npm run test:login && npm run test:turnstile && npm run test:headers"
+        "test:all": "npm run test:clean && npm run test:access && npm run test:abuse && npm run test:admin && npm run test:blocklist && npm run test:login && npm run test:turnstile && npm run test:headers",
+            "deploy": "npm run web:build && wrangler deploy"
   },
   "dependencies": {
     "chart.js": "^4.6.1",
