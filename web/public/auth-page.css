@@ -1,0 +1,62 @@
+/* Sign-in and message pages made by the Worker. Served as /auth-page.css. */
+:root {
+  --paper: #f5f1e8;
+  --card: #fffdf7;
+  --ink: #0d0c0b;
+  --mark: #fde047;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0d0c0b;
+    --card: #1a1816;
+    --ink: #f5f1e8;
+    --mark: #facc15;
+  }
+}
+* { box-sizing: border-box; }
+html { background: var(--paper); }
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1.5rem;
+  background: var(--paper);
+  color: var(--ink);
+  font: 1rem/1.6 Georgia, "Times New Roman", serif;
+}
+.panel {
+  width: 100%;
+  max-width: 26rem;
+  padding: 2rem 1.75rem;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 0.5rem;
+  box-shadow: 6px 6px 0 var(--ink);
+}
+p { margin: 0 0 1.5rem; }
+.brand { margin: 0 0 1.25rem; font-size: 1.25rem; font-weight: 800; letter-spacing: -0.01em; }
+.brand span { background: linear-gradient(transparent 55%, var(--mark) 55%); }
+h1 { margin: 0 0 0.75rem; font-size: 1.75rem; line-height: 1.15; font-weight: 800; }
+form { margin: 0; }
+.btn, button {
+  display: inline-block;
+  width: 100%;
+  padding: 0.8rem 1.25rem;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+  color: var(--paper);
+  background: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 0.375rem;
+  box-shadow: 3px 3px 0 var(--mark);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+}
+.btn:hover, button:hover { transform: translate(-1px, -1px); box-shadow: 4px 4px 0 var(--mark); }
+.btn:active, button:active { transform: none; box-shadow: none; }
+.btn:focus-visible, button:focus-visible { outline: 3px solid var(--mark); outline-offset: 3px; }
+@media (prefers-reduced-motion: reduce) { .btn, button { transition: none; } }

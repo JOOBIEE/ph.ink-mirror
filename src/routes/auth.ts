@@ -20,15 +20,25 @@ const GENERIC_REPLY = {
 
 const auth = new Hono<{ Bindings: Bindings }>()
 
+// These pages are plain HTML made by the Worker. They may load our own stylesheet and nothing
+// else: no scripts, no inline styles, no other origins.
+const PAGE_CSP =
+  "default-src 'none'; style-src 'self'; img-src 'self'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'"
+
 function page(status: number, title: string, bodyHtml: string): Response {
   const html =
     '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width, initial-scale=1">' +
-    `<title>${title}</title></head><body><h1>${title}</h1>${bodyHtml}</body></html>`
+    '<meta name="color-scheme" content="light dark">' +
+    '<link rel="icon" href="/favicon.svg" type="image/svg+xml">' +
+    '<link rel="stylesheet" href="/auth-page.css">' +
+    `<title>${title}</title></head><body><main class="panel">` +
+    `<p class="brand">phub<span>.ink</span></p><h1>${title}</h1>${bodyHtml}</main></body></html>`
   return new Response(html, {
     status,
     headers: {
       'Content-Type': 'text/html; charset=utf-8',
+      'Content-Security-Policy': PAGE_CSP,
       'Cache-Control': 'no-store',
       'Referrer-Policy': 'same-origin',
       'X-Robots-Tag': 'noindex',
@@ -40,10 +50,10 @@ function invalidLinkPage(): Response {
   return page(
     400,
     'Link not valid',
-    '<p>This sign-in link is invalid, expired, or already used. Please request a new one.</p>',
+    '<p>This sign-in link is invalid, expired, or already used. Please request a new one.</p>' +
+      '<a class="btn" href="/login">Get a new sign-in link</a>',
   )
 }
-
 auth.post('/request', async (c) => {
   const now = Math.floor(Date.now() / 1000)
 

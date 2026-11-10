@@ -42,7 +42,7 @@
         your browser, and nothing is sent to us.
       </p>
 
-      <div class="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+      <div class="mt-8 grid gap-8 lg:grid-cols-[24rem_minmax(0,1fr)] lg:items-start">
         <div class="min-w-0 space-y-8">
           <fieldset>
             <legend class="kicker marker mb-3">1 &middot; What is the code for?</legend>
@@ -73,15 +73,15 @@
               <fieldset class="space-y-1">
                 <legend class="label">How should the code work?</legend>
                 <label class="flex cursor-pointer items-start gap-3 p-1">
-                  <input type="radio" name="urlmode" value="new" class="mt-1 h-5 w-5" />
+                  <input type="radio" name="urlmode" value="new" class="mt-1 h-5 w-5 shrink-0 appearance-none rounded-full border-2 border-ink bg-surface checked:bg-ink" />
                   <span><strong>Create a tracked link.</strong> We make a short link, count every scan, and let you change the destination later without reprinting. It is saved in your dashboard.</span>
                 </label>
                 <label class="flex cursor-pointer items-start gap-3 p-1">
-                  <input type="radio" name="urlmode" value="existing" class="mt-1 h-5 w-5" />
+                  <input type="radio" name="urlmode" value="existing" class="mt-1 h-5 w-5 shrink-0 appearance-none rounded-full border-2 border-ink bg-surface checked:bg-ink" />
                   <span><strong>Use one of my links.</strong> Make a code for a link you already have.</span>
                 </label>
                 <label class="flex cursor-pointer items-start gap-3 p-1">
-                  <input type="radio" name="urlmode" value="static" class="mt-1 h-5 w-5" checked />
+                  <input type="radio" name="urlmode" value="static" class="mt-1 h-5 w-5 shrink-0 appearance-none rounded-full border-2 border-ink bg-surface checked:bg-ink" checked />
                   <span><strong>Plain code, no tracking.</strong> The code holds the address itself. No account needed, and it keeps working even if we go away.</span>
                 </label>
               </fieldset>
@@ -277,7 +277,7 @@
           </section>
         </div>
 
-        <aside class="min-w-0 space-y-5 lg:sticky lg:top-24" aria-labelledby="preview-heading">
+        <aside class="min-w-0 space-y-5 lg:order-first lg:sticky lg:top-32 lg:self-start" aria-labelledby="preview-heading">
           <h2 id="preview-heading" class="text-2xl font-extrabold">Preview</h2>
 
           <div class="qr-stage">
@@ -288,7 +288,7 @@
             This is a preview. The real code is made when you press "Create link and QR code", and downloads unlock then.
           </p>
 
-          <div class="card-flat">
+          <div class="card-flat" hidden>
             <h3 class="text-lg font-bold">Will it scan?</h3>
             <p id="check-summary" class="mt-1 text-sm font-semibold"></p>
             <ul id="checks" class="mt-3 space-y-2"></ul>
