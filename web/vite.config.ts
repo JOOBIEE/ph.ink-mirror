@@ -19,6 +19,8 @@ export default defineConfig({
         qrstudio: here('./qr-studio.html'),
         report: here('./report.html'),
         admin: here('./admin.html'),
+        privacy: here('./privacy.html'),
+        terms: here('./terms.html'),
       },
     },
   },
