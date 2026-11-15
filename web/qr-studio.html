@@ -110,7 +110,10 @@
                 <div class="grid gap-4 sm:grid-cols-2">
                   <div>
                     <label for="new-slug" class="label">Custom ending (optional)</label>
-                    <input id="new-slug" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" class="field" />
+                    <div class="slug-group">
+  <span class="slug-prefix" aria-hidden="true">phub.ink/</span>
+  <input id="new-slug" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" class="field" />
+</div>
                     <p class="hint">3 to 32 letters, numbers, hyphens or underscores. Leave empty for a random one.</p>
                   </div>
                   <div>
@@ -236,6 +239,7 @@
               </div>
             </div>
             <label class="flex min-h-11 items-center gap-2 text-sm"><input id="transparent" type="checkbox" class="h-5 w-5" /> Transparent background</label>
+            <label class="flex min-h-11 items-center gap-2 text-sm"><input id="caption" type="checkbox" class="h-5 w-5" checked /> Show "phub.ink" under the code</label>
 
             <div>
               <label for="logo-file" class="label">Logo in the centre (optional)</label>
@@ -282,6 +286,7 @@
 
           <div class="qr-stage">
             <div id="qr-preview" class="mx-auto flex min-h-[200px] items-center justify-center [&_canvas]:h-auto [&_canvas]:max-w-full [&_svg]:h-auto [&_svg]:max-w-full"></div>
+            <p id="qr-caption" class="mx-auto w-[300px] max-w-full pb-3 pt-1 text-center text-sm font-bold" hidden>phub.ink</p>
             <p id="preview-empty" class="px-2 py-8 text-center text-sm"></p>
           </div>
           <p id="preview-note" class="card-flat text-sm font-semibold" hidden>

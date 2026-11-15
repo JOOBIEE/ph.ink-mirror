@@ -14,6 +14,9 @@ export const MISS_WINDOW_SECONDS = 600
 export const REPORTS_PER_IP_PER_HOUR = 5
 export const REPORTS_PER_DAY = 300
 
+export const FEEDBACK_PER_IP_PER_HOUR = 3
+export const FEEDBACK_PER_DAY = 100
+
 const DAY = 86400
 
 export function dailyLinkCap(accountCreatedAt: number, nowSeconds: number): number {

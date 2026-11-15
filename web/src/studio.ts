@@ -136,6 +136,8 @@ const marginRange = byId<HTMLInputElement>('margin-percent')
 const marginLabel = byId<HTMLElement>('margin-label')
 const eclSelect = byId<HTMLSelectElement>('ecl')
 const exportSize = byId<HTMLSelectElement>('export-size')
+const captionBox = byId<HTMLInputElement>('caption')
+const captionText = byId<HTMLElement>('qr-caption')
 
 const previewBox = byId<HTMLDivElement>('qr-preview')
 const previewEmpty = byId<HTMLElement>('preview-empty')
@@ -355,9 +357,16 @@ function showEmpty(reason: string): void {
   previewEmpty.textContent = reason
   previewEmpty.hidden = false
   previewNote.hidden = true
+  captionText.hidden = true
   checksList.replaceChildren()
   checkSummary.textContent = ''
   setDownloads(false)
+}
+
+function syncCaption(): void {
+  captionText.hidden = !captionBox.checked
+  captionText.style.color = style.dots
+  captionText.style.backgroundColor = style.transparent ? 'transparent' : style.background
 }
 
 function drawPreview(data: string): void {
@@ -418,6 +427,7 @@ function update(): void {
     return
   }
   drawPreview(current.data)
+  syncCaption()
   renderChecks(scanChecks(current.data.length))
   setDownloads(current.downloadable)
   previewNote.hidden = !current.placeholder
@@ -425,12 +435,62 @@ function update(): void {
 
 // ---------- Exporting ----------
 
+const CAPTION_TEXT = 'phub.ink'
+const CAPTION_FONT = '"Helvetica Neue", Helvetica, Arial, sans-serif'
+
+// Adds a small "phub.ink" line under the finished code, outside its blank border, so the code
+// itself is untouched and scanning is not affected.
+async function addCaption(raw: Blob, extension: 'png' | 'svg', size: number): Promise<Blob> {
+  if (extension === 'svg') {
+    const strip = Math.round(size * 0.12)
+    const fontSize = Math.round(size * 0.05)
+    const total = size + strip
+    const baseline = size + Math.round(strip * 0.5 + fontSize * 0.35)
+    const inner = (await raw.text()).replace(/^<\?xml[^>]*\?>\s*/, '')
+    const backing = style.transparent
+      ? ''
+      : `<rect x="0" y="${size}" width="${size}" height="${strip}" fill="${style.background}"/>`
+    const svg =
+      `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${total}" viewBox="0 0 ${size} ${total}">` +
+      backing +
+      `<svg x="0" y="0" width="${size}" height="${size}">${inner}</svg>` +
+      `<text x="${size / 2}" y="${baseline}" text-anchor="middle" font-family='${CAPTION_FONT}' ` +
+      `font-size="${fontSize}" font-weight="700" fill="${style.dots}">${CAPTION_TEXT}</text></svg>`
+    return new Blob([svg], { type: 'image/svg+xml' })
+  }
+
+  const bitmap = await createImageBitmap(raw)
+  const width = bitmap.width
+  const strip = Math.round(width * 0.12)
+  const canvas = document.createElement('canvas')
+  canvas.width = width
+  canvas.height = bitmap.height + strip
+  const context = canvas.getContext('2d')
+  if (!context) throw new Error('Could not create the file.')
+  if (!style.transparent) {
+    context.fillStyle = style.background
+    context.fillRect(0, 0, canvas.width, canvas.height)
+  }
+  context.drawImage(bitmap, 0, 0)
+  context.fillStyle = style.dots
+  context.font = `700 ${Math.round(width * 0.05)}px ${CAPTION_FONT}`
+  context.textAlign = 'center'
+  context.textBaseline = 'middle'
+  context.fillText(CAPTION_TEXT, width / 2, bitmap.height + strip / 2)
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error('Could not create the file.'))),
+      'image/png',
+    )
+  })
+}
+
 async function makeBlob(data: string, extension: 'png' | 'svg'): Promise<Blob> {
   const size = extension === 'svg' ? SVG_EXPORT_SIZE : style.exportSize
   const qr = new QRCodeStyling(qrOptions(data, size, extension === 'svg' ? 'svg' : 'canvas'))
   const raw = await qr.getRawData(extension)
   if (!(raw instanceof Blob)) throw new Error('Could not create the file.')
-  return raw
+  return captionBox.checked ? addCaption(raw, extension, size) : raw
 }
 
 function saveBlob(blob: Blob, filename: string): void {
@@ -753,7 +813,7 @@ wifiSecurity.addEventListener('change', () => {
 const watched: HTMLElement[] = [
   newDestination, newSlug, newTitle, staticUrl, staticText, wifiSsid, wifiPassword,
   wifiSecurity, wifiHidden, emailTo, emailSubject, emailBody, dotStyleSelect,
-  cornerStyleSelect, cornerDotSelect, transparentBox, marginRange, eclSelect, logoScale,
+  cornerStyleSelect, cornerDotSelect, transparentBox, captionBox, marginRange, eclSelect, logoScale,
   exportSize,
 ]
 for (const control of watched) {

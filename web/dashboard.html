@@ -57,7 +57,13 @@
           <div class="grid gap-5 sm:grid-cols-2">
             <div>
               <label for="slug" class="label">Custom ending (optional)</label>
-              <input id="slug" name="slug" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="slug-hint" class="field" />
+              <div class="slug-group">
+  <span class="slug-prefix" aria-hidden="true">phub.ink/</span>
+  <div class="slug-group">
+  <span class="slug-prefix" aria-hidden="true">phub.ink/</span>
+  <input id="slug" name="slug" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="slug-hint" class="field" />
+</div>
+</div>
               <p id="slug-hint" class="hint">3 to 32 letters, numbers, hyphens or underscores. Leave empty for a random one.</p>
             </div>
             <div>

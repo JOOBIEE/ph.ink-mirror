@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Typecheck, unit tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run web:build
+      - name: Audit the dependencies we ship
+        run: npm audit --omit=dev --audit-level=high
+
+  integration:
+    name: Integration scripts
+    runs-on: ubuntu-latest
+    needs: checks
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Create the local test settings (dummy keys, test addresses only)
+        run: |
+          cat > .dev.vars <<'EOF'
+          APP_ENV=development
+          APP_URL=http://127.0.0.1:8787
+          ADMIN_EMAILS=admin@admin-test.invalid,oldadmin@admin-test.invalid
+          TURNSTILE_SITE_KEY=1x00000000000000000000AA
+          TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+          EOF
+      - run: npx wrangler d1 migrations apply ph-ink --local
+      - run: npm run web:build
+      - name: Start the local server
+        run: |
+          npx wrangler dev > wrangler.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8787/api/config > /dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat wrangler.log
+          exit 1
+      - run: npm run test:all
+      - name: Show the server log if something failed
+        if: failure()
+        run: cat wrangler.log
