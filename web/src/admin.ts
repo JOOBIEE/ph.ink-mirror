@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from 'chart.js'
 import { ApiError, logout, type Breakdown } from './api'
+import { listAdminFeedback, setFeedbackStatus, type AdminFeedback } from './admin-feedback-api'
 import {
   banAccount,
   blockAdminLink,
@@ -63,6 +64,9 @@ const BADGES: Record<string, string> = {
   open: 'bg-amber-100 text-amber-900',
   actioned: 'bg-green-100 text-green-900',
   dismissed: 'bg-zinc-200 text-zinc-800',
+    new: 'bg-amber-100 text-amber-900',
+  read: 'bg-green-100 text-green-900',
+  archived: 'bg-zinc-200 text-zinc-800',
 }
 
 const REASON_LABELS: Record<string, string> = {
@@ -84,6 +88,7 @@ const ACTION_LABELS: Record<string, string> = {
   view_account: 'Opened an account page',
   block_domain: 'Blocked a domain',
   unblock_domain: 'Removed a domain from the blocklist',
+    feedback_status: 'Updated a piece of feedback',
 }
 
 const BLOCK_REASON_LABELS: Record<string, string> = {
@@ -118,11 +123,12 @@ const signOutButton = byId<HTMLButtonElement>('sign-out')
 const statusBox = byId<HTMLElement>('status')
 const reportsBadge = byId<HTMLElement>('reports-badge')
 
-type Tab = 'overview' | 'reports' | 'links' | 'accounts' | 'domains' | 'audit'
-const TABS: Tab[] = ['overview', 'reports', 'links', 'accounts', 'domains', 'audit']
+type Tab = 'overview' | 'reports' | 'feedback' | 'links' | 'accounts' | 'domains' | 'audit'
+const TABS: Tab[] = ['overview', 'reports', 'feedback', 'links', 'accounts', 'domains', 'audit']
 const tabButtons: Record<Tab, HTMLButtonElement> = {
   overview: byId('tab-btn-overview'),
   reports: byId('tab-btn-reports'),
+  feedback: byId('tab-btn-feedback'),
   links: byId('tab-btn-links'),
   accounts: byId('tab-btn-accounts'),
   domains: byId('tab-btn-domains'),
@@ -131,6 +137,7 @@ const tabButtons: Record<Tab, HTMLButtonElement> = {
 const tabPanels: Record<Tab, HTMLElement> = {
   overview: byId('tab-overview'),
   reports: byId('tab-reports'),
+    feedback: byId('tab-feedback'),
   links: byId('tab-links'),
   accounts: byId('tab-accounts'),
   domains: byId('tab-domains'),
@@ -148,6 +155,11 @@ const reportsFilter = byId<HTMLSelectElement>('reports-filter')
 const reportsList = byId<HTMLElement>('reports-list')
 const reportsEmpty = byId<HTMLElement>('reports-empty')
 const reportsMore = byId<HTMLButtonElement>('reports-more')
+const feedbackBadge = byId<HTMLElement>('feedback-badge')
+const feedbackFilter = byId<HTMLSelectElement>('feedback-filter')
+const feedbackList = byId<HTMLElement>('feedback-list')
+const feedbackEmpty = byId<HTMLElement>('feedback-empty')
+const feedbackMore = byId<HTMLButtonElement>('feedback-more')
 
 const linksFilters = byId<HTMLFormElement>('links-filters')
 const linksQuery = byId<HTMLInputElement>('links-q')
@@ -666,6 +678,55 @@ const loadReports = makeLoader<AdminReport>({
   emptyNote: reportsEmpty,
 })
 
+const FEEDBACK_KIND_LABELS: Record<string, string> = {
+  idea: 'Idea',
+  problem: 'Problem',
+  praise: 'Praise',
+  other: 'Other',
+}
+
+function renderFeedback(item: AdminFeedback): HTMLLIElement {
+  const row = el('li', 'rounded-xl border border-zinc-300 p-4')
+
+  const top = el('div', 'flex flex-wrap items-center justify-between gap-2')
+  const heading = el('div', 'flex flex-wrap items-center gap-2')
+  heading.append(el('h3', 'font-bold', FEEDBACK_KIND_LABELS[item.kind] ?? item.kind), badge(item.status))
+  top.append(heading, el('span', 'text-xs text-zinc-700', fmtTime(item.createdAt)))
+  row.append(top)
+
+  row.append(el('p', 'mt-3 whitespace-pre-wrap break-words text-sm', item.message))
+
+  const meta = el('p', 'mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-zinc-700')
+  meta.append(
+    el('span', '', item.page ? `Sent from ${item.page}` : 'Page unknown'),
+    el('span', 'break-all', item.email ? `Reply to: ${item.email}` : 'No email given'),
+  )
+  row.append(meta)
+
+  const change = (label: string, status: string, done: string): HTMLButtonElement =>
+    actionButton(label, async () => {
+      await setFeedbackStatus(item.id, status)
+      showStatus(done, false)
+      await afterAction()
+    })
+
+  const actions = el('div', 'mt-3 flex flex-wrap gap-2')
+  if (item.status !== 'read') actions.append(change('Mark as read', 'read', 'Marked as read.'))
+  if (item.status !== 'archived') actions.append(change('Archive', 'archived', 'Archived.'))
+  if (item.status !== 'new') actions.append(change('Mark as new', 'new', 'Marked as new.'))
+  row.append(actions)
+  return row
+}
+
+const loadFeedback = makeLoader<AdminFeedback>({
+  fetchPage: async (offset) =>
+    (await listAdminFeedback({ status: feedbackFilter.value, offset, limit: PAGE_SIZE })).feedback,
+  render: renderFeedback,
+  list: feedbackList,
+  moreButton: feedbackMore,
+  emptyNote: feedbackEmpty,
+})
+
 const loadLinks = makeLoader<AdminLink>({
   fetchPage: async (offset) =>
     (
@@ -735,6 +796,10 @@ function applyOverview(data: Overview): void {
 
   reportsBadge.textContent = `${data.openReports} open`
   reportsBadge.hidden = data.openReports === 0
+  
+  const newFeedback = (data as Overview & { newFeedback?: number }).newFeedback ?? 0
+  feedbackBadge.textContent = `${newFeedback} new`
+  feedbackBadge.hidden = newFeedback === 0
 
   overviewStats.replaceChildren(
     statCard('Active accounts', data.users),
@@ -1003,6 +1068,10 @@ async function openTab(tab: Tab, load = true): Promise<void> {
 
   if (!load) return
   switch (tab) {
+        case 'feedback':
+      await loadFeedback(true)
+      break
+
     case 'overview':
       await refreshOverview()
       break
@@ -1027,6 +1096,9 @@ async function openTab(tab: Tab, load = true): Promise<void> {
 async function afterAction(): Promise<void> {
   await refreshOverview()
   switch (activeTab) {
+        case 'feedback':
+      await loadFeedback(true)
+      break
     case 'reports':
       await loadReports(true)
       break
@@ -1105,6 +1177,8 @@ domainsForm.addEventListener('submit', (event) => {
 })
 
 reportsMore.addEventListener('click', () => void run(() => loadReports(false)))
+feedbackFilter.addEventListener('change', () => void run(() => loadFeedback(true)))
+feedbackMore.addEventListener('click', () => void run(() => loadFeedback(false)))
 linksMore.addEventListener('click', () => void run(() => loadLinks(false)))
 accountsMore.addEventListener('click', () => void run(() => loadAccounts(false)))
 domainsMore.addEventListener('click', () => void run(() => loadDomains(false)))

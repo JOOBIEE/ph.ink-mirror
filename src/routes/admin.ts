@@ -42,6 +42,12 @@ import { parseId } from '../lib/ids'
 import { readJsonObject } from '../lib/json-body'
 import { getLink } from '../lib/link-store'
 import { normalizeBlockDomain } from '../lib/blocklist'
+import {
+  countNewFeedback,
+  FEEDBACK_STATUSES,
+  listAdminFeedback,
+  setFeedbackStatus,
+} from '../lib/feedback-admin'
 
 const NOT_FOUND = { error: 'Not found.' }
 const BAD_RANGE = { error: 'Period must be 7, 30, 90 or 365 days.' }
@@ -54,7 +60,8 @@ admin.use('*', requireAdmin)
 
 admin.get('/overview', async (c) => {
   const overview = await getOverview(c.env.DB, nowSeconds())
-  return c.json({ ...overview, adminEmail: c.get('admin').email })
+    const newFeedback = await countNewFeedback(c.env.DB)
+  return c.json({ ...overview, adminEmail: c.get('admin').email, newFeedback })
 })
 
 // ---------- Links ----------
@@ -338,4 +345,27 @@ admin.delete('/blocked-domains/:domain', async (c) => {
   const result = await removeBlockedDomain(c.env.DB, c.get('admin').id, domain, nowSeconds())
   return result.ok ? c.json({ ok: true }) : c.json({ error: result.error }, result.status)
 })
+// ---------- Feedback ----------
+
+admin.get('/feedback', async (c) => {
+  const status = parseFilter(FEEDBACK_STATUSES, c.req.query('status') ?? 'new')
+  if (!status.ok) return c.json({ error: 'Unknown status.' }, 400)
+
+  const { limit, offset } = parsePaging(c.req.query('limit'), c.req.query('offset'))
+  const feedback = await listAdminFeedback(c.env.DB, { status: status.value, limit, offset })
+  return c.json({ feedback })
+})
+
+admin.post('/feedback/:id/status', async (c) => {
+  const id = parseId(c.req.param('id'))
+  if (id === null) return c.json(NOT_FOUND, 404)
+
+  const input = await readJsonObject(c)
+  const status = FEEDBACK_STATUSES.find((item) => item === input?.status)
+  if (!status) return c.json({ error: 'Choose new, read or archived.' }, 400)
+
+  const found = await setFeedbackStatus(c.env.DB, c.get('admin').id, id, status, nowSeconds())
+  return found ? c.json({ ok: true }) : c.json(NOT_FOUND, 404)
+})
+
 export default admin
