@@ -13,7 +13,7 @@ account.get('/export', async (c) => {
   return new Response(JSON.stringify(data, null, 2), {
     headers: {
       'Content-Type': 'application/json; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ph-ink-my-data.json"',
+      'Content-Disposition': 'attachment; filename="phub-ink-my-data.json"',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
     },

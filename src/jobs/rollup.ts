@@ -3,6 +3,8 @@ import { utcDay } from '../lib/visitor-hash'
 export const RAW_RETENTION_DAYS = 90
 export const SALT_RETENTION_DAYS = 2
 const RATE_LIMIT_RETENTION_DAYS = 2
+const REPORTER_HASH_RETENTION_DAYS = 2
+const EXPIRED_KEY_RETENTION_DAYS = 1
 const MAX_DAYS_PER_RUN = 31
 const SECONDS_PER_DAY = 86400
 
@@ -58,6 +60,9 @@ export async function runRollup(
   clicksDeleted: number
   saltsDeleted: number
   rateRowsDeleted: number
+  reporterHashesCleared: number
+  signInKeysDeleted: number
+  sessionsDeleted: number
 }> {
   const todayStart = cutoffSeconds(nowSeconds, 0)
 
@@ -96,11 +101,34 @@ export async function runRollup(
     .bind(cutoffSeconds(nowSeconds, RATE_LIMIT_RETENTION_DAYS))
     .run()
 
+  // A reporter's scrambled fingerprint is only needed to ignore repeat reports for one day,
+  // so it is cleared after two days. The report itself is kept.
+  const clearedReporters = await db
+    .prepare(
+      'UPDATE reports SET reporter_hash = NULL WHERE reporter_hash IS NOT NULL AND created_at < ?',
+    )
+    .bind(cutoffSeconds(nowSeconds, REPORTER_HASH_RETENTION_DAYS))
+    .run()
+
+  // Sign-in links and sessions that expired more than a day ago can never be used again.
+  const expiredBefore = cutoffSeconds(nowSeconds, EXPIRED_KEY_RETENTION_DAYS)
+  const deletedKeys = await db
+    .prepare('DELETE FROM login_tokens WHERE expires_at < ?')
+    .bind(expiredBefore)
+    .run()
+  const deletedSessions = await db
+    .prepare('DELETE FROM sessions WHERE expires_at < ?')
+    .bind(expiredBefore)
+    .run()
+
   const result = {
     daysRolledUp: pending.results.length,
     clicksDeleted: deletedClicks.meta.changes,
     saltsDeleted: deletedSalts.meta.changes,
     rateRowsDeleted: deletedRates.meta.changes,
+    reporterHashesCleared: clearedReporters.meta.changes,
+    signInKeysDeleted: deletedKeys.meta.changes,
+    sessionsDeleted: deletedSessions.meta.changes,
   }
   console.log('rollup finished', JSON.stringify(result))
   return result

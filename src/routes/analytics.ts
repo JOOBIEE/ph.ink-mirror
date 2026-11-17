@@ -73,7 +73,7 @@ analytics.get('/export.csv', async (c) => {
   return new Response(toCsv(rows), {
     headers: {
       'Content-Type': 'text/csv; charset=utf-8',
-      'Content-Disposition': 'attachment; filename="ph-ink-clicks.csv"',
+      'Content-Disposition': 'attachment; filename="phub-ink-clicks.csv"',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
     },
